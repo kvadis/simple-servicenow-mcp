@@ -1,0 +1,61 @@
+# Byte-compiled / optimized / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+share/python-wheels/
+MANIFEST
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+.venv.broken/
+venv/
+env/
+ENV/
+
+# Test / coverage / lint caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Local secrets — never commit
+.env
+.env.*
+!.env.example
+instances.json
+!instances.example.json
+
+# Editors / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project-local notes (not for OSS)
+HANDOFF.md
+.claude/
+.claude.local.md
+ideas/
+research/
+
+# Misc
+*.log
+.python-version
+
+# Personal dev launcher (hardcodes .venv path)
+run.sh

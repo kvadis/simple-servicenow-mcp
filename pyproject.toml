@@ -1,0 +1,122 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "simple-servicenow-mcp"
+version = "0.1.0"
+description = "ServiceNow MCP Server — analytical intelligence over ServiceNow instances (audits, schema discovery, catalog UX, instance health)"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Kostya Kozachuk", email = "kostya.kozachuk@outlook.com" }]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "servicenow",
+    "llm",
+    "claude",
+    "anthropic",
+    "now-platform",
+    "itsm",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
+dependencies = [
+    "mcp[cli]>=1.25,<2",
+    "httpx>=0.27",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/kvadis/simple-servicenow-mcp"
+Repository = "https://github.com/kvadis/simple-servicenow-mcp"
+Issues = "https://github.com/kvadis/simple-servicenow-mcp/issues"
+Changelog = "https://github.com/kvadis/simple-servicenow-mcp/blob/main/CHANGELOG.md"
+
+[project.scripts]
+simple-servicenow-mcp = "simple_servicenow_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/simple_servicenow_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "tests/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    ".env.example",
+    "instances.example.json",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",   # line too long — formatter handles
+    "B008",   # FastMCP Context default is intentional
+    "SIM117", # combining `with` statements
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011", "F841"]  # asserts + unused locals OK in tests
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

@@ -1,0 +1,19 @@
+{
+  "result": [
+    {
+      "sys_id": "0021984a533030101dcdddeeff7b12e4",
+      "name": "Validate duplicate search source",
+      "script": "(function executeRule(current, previous /*null when async*/ ) {\n\n    var gr = new GlideRecord('ais_search_profile_ais_search_source_m2m');\n    gr.addQuery('profile', current.profile);\n    gr.addQuery('search_source', current.search_source);\n    gr.query();\n    if (gr.next()) {\n        gs.addErrorMessage(gs.getMessage('The selected search source was not added because it is already linked to this search profile.'));\n        current.setAbortAction(true);\n    }\n\n})(current, previous);"
+    },
+    {
+      "sys_id": "0030a75343c161106c83157aaab8f201",
+      "name": "Update sheet num on change sheet name ",
+      "script": "(function executeRule(current, previous /*null when async*/) {\n\t\n\t\tif(previous.sheet_number==0 && previous.sheet_name==0){\n\t\tif(current.sheet_number==0){\n\t\t\tcurrent.sheet_number = current.sheet_name;\n\t\t}else{\n\t\t\tcurrent.sheet_name = current.sheet_number;\n\t\t}\n\t}else{\n\t\tif(previous.sheet_name!=current.sheet_name){\n\t\t\tcurrent.sheet_number = current.sheet_name;\n\t\t}else if(previous.sheet_number!=current.sheet_number){\n\t\t\tcurrent.sheet_name = current.sheet_number;\n\t\t}\n\t}\n\n})(current, previous);"
+    },
+    {
+      "sys_id": "0037d7579f330200d3921a1cf67fcf1d",
+      "name": "Rule validation on Identifier Entry form",
+      "script": "new IdentificationRuleValidator(current.sys_id).validate();"
+    }
+  ]
+}

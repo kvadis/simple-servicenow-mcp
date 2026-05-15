@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a defect or unexpected behaviour
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, concrete description. What did you try, what response did you get, what did you expect?
+      placeholder: |
+        Called `create_record("incident", {"short_descrption": "..."})` (note typo).
+        Expected the field-name validator to flag `short_descrption`.
+        Got a 400 from ServiceNow with an opaque message.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `pip show simple-servicenow-mcp | grep Version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12.4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options: [stdio, http, sse]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: auth
+    attributes:
+      label: Auth method
+      options: [basic, oauth]
+    validations:
+      required: true
+
+  - type: input
+    id: servicenow-version
+    attributes:
+      label: ServiceNow release
+      description: e.g. Washington DC, Xanadu, Yokohama
+      placeholder: "Xanadu"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Server stderr output. Set `SN_LOG_LEVEL=DEBUG` for verbose. Redact secrets and sys_ids if sensitive.
+      render: shell
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The exact tool call(s) that trigger the bug.

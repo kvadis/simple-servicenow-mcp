@@ -1,0 +1,52 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python build/cache artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+.venv.broken/
+env/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local secrets / config
+.env
+.env.*
+!.env.example
+instances.json
+!instances.example.json
+
+# Project-internal docs not needed at runtime
+research/
+ideas/
+HANDOFF.md
+CLAUDE.md
+.claude/
+.claude.local.md
+
+# Tests don't ship in the image
+tests/
+
+# CI artefacts
+.github/
+.pre-commit-config.yaml

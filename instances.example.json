@@ -1,0 +1,20 @@
+{
+  "default": "prod",
+  "instances": {
+    "prod": {
+      "instance_url": "https://acme.service-now.com",
+      "auth_method": "oauth",
+      "client_id": "your-prod-client-id",
+      "client_secret": "your-prod-client-secret"
+    },
+    "dev": {
+      "instance_url": "https://acmedev.service-now.com",
+      "auth_method": "basic",
+      "username": "admin",
+      "password": "your-dev-password"
+    },
+    "test": {
+      "instance_url": "https://acmetest.service-now.com"
+    }
+  }
+}

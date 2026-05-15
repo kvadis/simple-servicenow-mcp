@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a new tool, prompt, or capability
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What workflow are you trying to enable? What's the LLM trying to do?
+      placeholder: "I want the LLM to be able to compare incident volumes per assignment group over the last quarter."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape
+      description: If you have a sense of how the tool/prompt would look, sketch it. Otherwise leave blank.
+      placeholder: |
+        Tool: `aggregate_records("incident", group_by="assignment_group", query="opened_atONLast quarter@...")`
+        — already exists, but a higher-level prompt would orchestrate the analysis end-to-end.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: How are you doing this today without the new capability?
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which tool package would this belong to?
+      options: [core, itsm, scripts, catalog, cmdb, knowledge, attachment, update_set, audit, prompt-only, new package]
