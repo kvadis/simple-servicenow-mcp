@@ -1,0 +1,72 @@
+{
+  "result": [
+    {
+      "reference": "",
+      "column_label": "Reopen count",
+      "active": "true",
+      "default_value": "0",
+      "internal_type": {
+        "link": "https://dev12345.service-now.com/api/now/table/sys_glide_object?name=integer",
+        "value": "integer"
+      },
+      "mandatory": "false",
+      "element": "reopen_count",
+      "max_length": "40"
+    },
+    {
+      "reference": "",
+      "column_label": "Subcategory",
+      "active": "true",
+      "default_value": "",
+      "internal_type": {
+        "link": "https://dev12345.service-now.com/api/now/table/sys_glide_object?name=string",
+        "value": "string"
+      },
+      "mandatory": "false",
+      "element": "subcategory",
+      "max_length": "40"
+    },
+    {
+      "reference": "",
+      "column_label": "Last reopened at",
+      "active": "true",
+      "default_value": "",
+      "internal_type": {
+        "link": "https://dev12345.service-now.com/api/now/table/sys_glide_object?name=glide_date_time",
+        "value": "glide_date_time"
+      },
+      "mandatory": "false",
+      "element": "reopened_time",
+      "max_length": "40"
+    },
+    {
+      "reference": {
+        "link": "https://dev12345.service-now.com/api/now/table/sys_db_object?name=incident",
+        "value": "incident"
+      },
+      "column_label": "Parent Incident",
+      "active": "true",
+      "default_value": "",
+      "internal_type": {
+        "link": "https://dev12345.service-now.com/api/now/table/sys_glide_object?name=reference",
+        "value": "reference"
+      },
+      "mandatory": "false",
+      "element": "parent_incident",
+      "max_length": "32"
+    },
+    {
+      "reference": "",
+      "column_label": "Probable cause",
+      "active": "true",
+      "default_value": "",
+      "internal_type": {
+        "link": "https://dev12345.service-now.com/api/now/table/sys_glide_object?name=string",
+        "value": "string"
+      },
+      "mandatory": "false",
+      "element": "cause",
+      "max_length": "4000"
+    }
+  ]
+}

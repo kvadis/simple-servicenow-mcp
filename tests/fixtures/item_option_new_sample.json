@@ -1,0 +1,88 @@
+{
+  "result": [
+    {
+      "question_text": "Group email",
+      "sys_id": "13d8e0bc67271300dbfdbb2d07415a24",
+      "name": "group_email",
+      "type": "26",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "Group members",
+      "sys_id": "2749a4bc67271300dbfdbb2d07415a25",
+      "name": "group_members",
+      "type": "21",
+      "mandatory": "true"
+    },
+    {
+      "question_text": "",
+      "sys_id": "43ded81a67102300dbfdbb2d07415a31",
+      "name": "formatter2",
+      "type": "20",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "Manager",
+      "sys_id": "4ec72c7c67271300dbfdbb2d07415a06",
+      "name": "manager",
+      "type": "8",
+      "mandatory": "true"
+    },
+    {
+      "question_text": "Container Start",
+      "sys_id": "588e581a67102300dbfdbb2d07415afb",
+      "name": "container_start",
+      "type": "19",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "Container Start1",
+      "sys_id": "6a23bd0a53202300cc376512a2dc345d",
+      "name": "container_start1",
+      "type": "19",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "",
+      "sys_id": "8693314a53202300cc376512a2dc34d5",
+      "name": "formatter3",
+      "type": "20",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "Ownership Group",
+      "sys_id": "9e70310a53202300cc376512a2dc3460",
+      "name": "ownership_group",
+      "type": "8",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "Name",
+      "sys_id": "a657287c67271300dbfdbb2d07415ace",
+      "name": "name",
+      "type": "6",
+      "mandatory": "true"
+    },
+    {
+      "question_text": "",
+      "sys_id": "b2ced81a67102300dbfdbb2d07415a28",
+      "name": "formatter",
+      "type": "24",
+      "mandatory": "false"
+    },
+    {
+      "question_text": "Request Type",
+      "sys_id": "e2a3714a53202300cc376512a2dc34cd",
+      "name": "request_type",
+      "type": "5",
+      "mandatory": "true"
+    },
+    {
+      "question_text": "Description",
+      "sys_id": "ef1924bc67271300dbfdbb2d07415aef",
+      "name": "description",
+      "type": "2",
+      "mandatory": "false"
+    }
+  ]
+}
