@@ -6,6 +6,9 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+### Changed
+- **`SN_TOOL_PACKAGES` default narrowed** from `all` (40 tools) to a curated subset — `core, itsm, scripts, catalog, audit` (24 tools, the "developer analytical" loop). Keeps the LLM's tool list compact out of the box; pass `SN_TOOL_PACKAGES=all` to opt back into every module, or pin a custom set. Domain-specific modules (`cmdb`, `knowledge`, `attachment`, `update_set`) are now opt-in.
+
 ### Added
 - **CMDB tools** (`tools/cmdb.py`): `list_cis`, `get_ci`, `list_ci_relationships` (splits outgoing vs. incoming on `cmdb_rel_ci`), `find_cis_by_class`. All default to `display_value=true` since CMDB is reference-heavy.
 - **Knowledge tools** (`tools/knowledge.py`): `list_knowledge_articles` (defaults to `workflow_state=published`), `search_knowledge` (LIKE-OR across short_description + text + keywords), `get_knowledge_article`.

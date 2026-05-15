@@ -29,7 +29,6 @@ _WIP_TEST_FILES = {
     "test_compare_scopes.py",
     "test_find_orphaned_records.py",
     "test_instance_health_metrics.py",
-    "test_triage_incident.py",
     "test_upgrade_readiness_review.py",
 }
 

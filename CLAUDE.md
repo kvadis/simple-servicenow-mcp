@@ -18,7 +18,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Capability tally
 
-- **40 tools** across 9 domain modules
+- **40 tools** across 9 domain modules (24 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
 - **9 prompts** orchestrating multi-step analytical workflows
 - **4 MCP resources**
 
@@ -53,7 +53,7 @@ python -m build                                        # Build wheel + sdist int
 | `SN_LOG_LEVEL` / `SN_LOG_FORMAT` | `INFO` / `text` (or `DEBUG`+`json`) |
 | `SN_INSTANCES_FILE` | Path to `instances.json` — enables multi-instance mode |
 | `SN_READ_ONLY` | `true` to refuse mutations (CLI: `--read-only`) |
-| `SN_TOOL_PACKAGES` | Comma-separated subset of tool modules to load (`core,itsm,cmdb` etc.) |
+| `SN_TOOL_PACKAGES` | Comma-separated subset of tool modules to load. Unset → curated default (`core,itsm,scripts,catalog,audit`, ~24 tools). `all` → every module (~40 tools). |
 
 See `.env.example` for the canonical list. **Common gotcha:** `SN_API_TIMEOUT` is in seconds — `30000` would be 8.3 hours.
 

@@ -4,19 +4,26 @@ from __future__ import annotations
 
 import pytest
 
-from simple_servicenow_mcp.packages import PACKAGES, parse_packages
+from simple_servicenow_mcp.packages import DEFAULT_PACKAGES, PACKAGES, parse_packages
+
+_DEFAULT_MODULES = {PACKAGES[name] for name in DEFAULT_PACKAGES}
 
 
-def test_unset_returns_all_modules() -> None:
-    assert parse_packages(None) == set(PACKAGES.values())
+def test_unset_returns_default_subset() -> None:
+    assert parse_packages(None) == _DEFAULT_MODULES
 
 
-def test_empty_string_returns_all_modules() -> None:
-    assert parse_packages("") == set(PACKAGES.values())
+def test_empty_string_returns_default_subset() -> None:
+    assert parse_packages("") == _DEFAULT_MODULES
 
 
-def test_whitespace_only_returns_all_modules() -> None:
-    assert parse_packages("   ") == set(PACKAGES.values())
+def test_whitespace_only_returns_default_subset() -> None:
+    assert parse_packages("   ") == _DEFAULT_MODULES
+
+
+def test_default_subset_is_strictly_narrower_than_all() -> None:
+    """Unset must not silently expose every tool — that defeats the purpose of the default."""
+    assert set(PACKAGES.values()) > _DEFAULT_MODULES
 
 
 def test_all_sentinel_returns_all_modules() -> None:
