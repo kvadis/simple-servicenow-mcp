@@ -26,7 +26,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data ─────────────────────────────────────────────────────────
 
 _SCOPE_RECORD = {
@@ -51,6 +50,7 @@ _TABLE_PROTECTED = {
 
 # ── 1. Tool existence ───────────────────────────────────────────────────
 
+
 def test_audit_acls_tool_should_exist_in_audit_module() -> None:
     """audit_acls must be importable from tools.audit — not implemented yet."""
     # Arrange / Act
@@ -63,6 +63,7 @@ def test_audit_acls_tool_should_exist_in_audit_module() -> None:
 
 
 # ── 2-3. Scope resolution ───────────────────────────────────────────────
+
 
 async def test_audit_acls_should_resolve_scope_via_sys_scope_first(
     fake_client,
@@ -109,6 +110,7 @@ async def test_audit_acls_should_return_error_json_when_scope_not_found(
 
 # ── 4. Table enumeration ────────────────────────────────────────────────
 
+
 async def test_audit_acls_should_enumerate_scope_tables_via_sys_db_object(
     fake_client,
     fake_ctx,
@@ -129,9 +131,7 @@ async def test_audit_acls_should_enumerate_scope_tables_via_sys_db_object(
 
     # Assert
     dbo_calls = [c for c in fake_client.calls if c.table == "sys_db_object"]
-    assert len(dbo_calls) == 1, (
-        f"expected exactly one sys_db_object query, got {len(dbo_calls)}"
-    )
+    assert len(dbo_calls) == 1, f"expected exactly one sys_db_object query, got {len(dbo_calls)}"
     query = dbo_calls[0].kwargs.get("query") or ""
     assert f"sys_scope={_SCOPE_RECORD['sys_id']}" in query, (
         f"sys_db_object query must filter by the resolved scope sys_id, got: {query!r}"
@@ -139,6 +139,7 @@ async def test_audit_acls_should_enumerate_scope_tables_via_sys_db_object(
 
 
 # ── 5. ACL lookup ───────────────────────────────────────────────────────
+
 
 async def test_audit_acls_should_check_acl_presence_for_each_table(
     fake_client,
@@ -165,9 +166,7 @@ async def test_audit_acls_should_check_acl_presence_for_each_table(
     assert len(acl_calls) >= 2, (
         f"expected ≥2 sys_security_acl checks (one per table), got {len(acl_calls)}"
     )
-    queried_names = " ".join(
-        c.kwargs.get("query") or "" for c in acl_calls
-    )
+    queried_names = " ".join(c.kwargs.get("query") or "" for c in acl_calls)
     assert _TABLE_UNPROTECTED["name"] in queried_names, (
         f"ACL lookup must reference {_TABLE_UNPROTECTED['name']!r}, queries: {queried_names!r}"
     )
@@ -177,6 +176,7 @@ async def test_audit_acls_should_check_acl_presence_for_each_table(
 
 
 # ── 6-7. Detector rules ─────────────────────────────────────────────────
+
 
 async def test_audit_acls_should_flag_tables_with_zero_acls_as_blocking(
     fake_client,
@@ -197,7 +197,8 @@ async def test_audit_acls_should_flag_tables_with_zero_acls_as_blocking(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
+        f
+        for f in findings
         if f.get("type") == "no_acls" and f.get("table") == _TABLE_UNPROTECTED["name"]
     ]
     assert matching, (
@@ -234,15 +235,15 @@ async def test_audit_acls_should_not_flag_tables_with_at_least_one_acl(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
+        f
+        for f in findings
         if f.get("type") == "no_acls" and f.get("table") == _TABLE_PROTECTED["name"]
     ]
-    assert not matching, (
-        f"protected table must not appear in findings, got: {findings!r}"
-    )
+    assert not matching, f"protected table must not appear in findings, got: {findings!r}"
 
 
 # ── 8. Response shape ───────────────────────────────────────────────────
+
 
 async def test_audit_acls_should_echo_scope_and_tables_audited_count(
     fake_client,
@@ -292,6 +293,7 @@ async def test_audit_acls_should_return_empty_findings_when_all_tables_protected
 
 
 # ── 9. Error wrapping ───────────────────────────────────────────────────
+
 
 async def test_audit_acls_should_wrap_client_errors_in_tool_error(
     fake_client,

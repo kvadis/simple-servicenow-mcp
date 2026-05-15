@@ -29,7 +29,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data ─────────────────────────────────────────────────────────
 
 _DICT_REF = {
@@ -73,6 +72,7 @@ _USER_LIVE = {"sys_id": _LIVE_USER_SYS_ID, "user_name": "alice"}
 
 # ── 1. Tool existence ───────────────────────────────────────────────────
 
+
 def test_find_orphaned_records_tool_should_exist_in_audit_module() -> None:
     """find_orphaned_records must be importable from tools.audit — not implemented yet."""
     # Arrange / Act
@@ -86,6 +86,7 @@ def test_find_orphaned_records_tool_should_exist_in_audit_module() -> None:
 
 # ── 2-4. Field-definition resolution ────────────────────────────────────
 
+
 async def test_find_orphaned_records_should_resolve_field_via_sys_dictionary_first(
     fake_client,
     fake_ctx,
@@ -97,7 +98,9 @@ async def test_find_orphaned_records_should_resolve_field_via_sys_dictionary_fir
     are not globally unique by name.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.list_responses["incident"] = []
@@ -125,7 +128,9 @@ async def test_find_orphaned_records_should_return_error_json_when_field_not_fou
 ) -> None:
     """Unknown field returns an error payload — must not raise."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = []  # field doesn't exist
 
@@ -148,7 +153,9 @@ async def test_find_orphaned_records_should_return_error_json_when_field_is_not_
     everything is clean.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_NOT_REFERENCE]
 
@@ -168,6 +175,7 @@ async def test_find_orphaned_records_should_return_error_json_when_field_is_not_
 
 # ── 5. Source-table walk ────────────────────────────────────────────────
 
+
 async def test_find_orphaned_records_should_walk_source_table_for_non_empty_refs(
     fake_client,
     fake_ctx,
@@ -175,7 +183,9 @@ async def test_find_orphaned_records_should_walk_source_table_for_non_empty_refs
     """After resolving the field, the tool queries the source table filtered
     to records where ref_field is set (``<ref_field>ISNOTEMPTY``)."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.list_responses["incident"] = [_INC_HEALTHY, _INC_ORPHAN]
@@ -185,10 +195,7 @@ async def test_find_orphaned_records_should_walk_source_table_for_non_empty_refs
     await find_orphaned_records("incident", "assigned_to", fake_ctx)
 
     # Assert
-    inc_calls = [
-        c for c in fake_client.calls
-        if c.method == "list" and c.table == "incident"
-    ]
+    inc_calls = [c for c in fake_client.calls if c.method == "list" and c.table == "incident"]
     assert inc_calls, "expected at least one list call against the source table"
     query = inc_calls[0].kwargs.get("query") or ""
     assert "assigned_toISNOTEMPTY" in query, (
@@ -197,6 +204,7 @@ async def test_find_orphaned_records_should_walk_source_table_for_non_empty_refs
 
 
 # ── 6-7. Target-table validation ────────────────────────────────────────
+
 
 async def test_find_orphaned_records_should_validate_refs_against_target_table(
     fake_client,
@@ -209,7 +217,9 @@ async def test_find_orphaned_records_should_validate_refs_against_target_table(
     table at all.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.list_responses["incident"] = [_INC_HEALTHY, _INC_ORPHAN]
@@ -220,12 +230,9 @@ async def test_find_orphaned_records_should_validate_refs_against_target_table(
 
     # Assert
     user_calls = [
-        c for c in fake_client.calls
-        if c.table == "sys_user" and c.method in ("list", "get")
+        c for c in fake_client.calls if c.table == "sys_user" and c.method in ("list", "get")
     ]
-    assert user_calls, (
-        "expected at least one lookup against the target table sys_user — none found"
-    )
+    assert user_calls, "expected at least one lookup against the target table sys_user — none found"
 
 
 async def test_find_orphaned_records_should_surface_records_whose_ref_does_not_resolve(
@@ -236,7 +243,9 @@ async def test_find_orphaned_records_should_surface_records_whose_ref_does_not_r
     The healthy record must NOT appear.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.list_responses["incident"] = [_INC_HEALTHY, _INC_ORPHAN]
@@ -264,7 +273,9 @@ async def test_find_orphaned_records_should_attach_dead_ref_value_to_each_orphan
     """Each orphan finding must carry the dead reference value so the human
     operator can see *what* was missing, not just that something was."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.list_responses["incident"] = [_INC_ORPHAN]
@@ -286,6 +297,7 @@ async def test_find_orphaned_records_should_attach_dead_ref_value_to_each_orphan
 
 # ── 8. Negative cases ───────────────────────────────────────────────────
 
+
 async def test_find_orphaned_records_should_not_flag_records_with_empty_ref_field(
     fake_client,
     fake_ctx,
@@ -293,7 +305,9 @@ async def test_find_orphaned_records_should_not_flag_records_with_empty_ref_fiel
     """Empty ref values are not orphans — they're just unassigned. Don't bring
     them in even if they leak through into the source-table response."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     # Even if ISNOTEMPTY filtering is bypassed and an empty row leaks through,
@@ -315,6 +329,7 @@ async def test_find_orphaned_records_should_not_flag_records_with_empty_ref_fiel
 
 # ── 9. Response shape ───────────────────────────────────────────────────
 
+
 async def test_find_orphaned_records_should_echo_table_ref_field_and_target_table(
     fake_client,
     fake_ctx,
@@ -326,7 +341,9 @@ async def test_find_orphaned_records_should_echo_table_ref_field_and_target_tabl
     callers learn what was actually validated against.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.list_responses["incident"] = []
@@ -346,13 +363,16 @@ async def test_find_orphaned_records_should_echo_table_ref_field_and_target_tabl
 
 # ── 10. Error wrapping ──────────────────────────────────────────────────
 
+
 async def test_find_orphaned_records_should_wrap_client_errors_in_tool_error(
     fake_client,
     fake_ctx,
 ) -> None:
     """Underlying client failures mid-scan must surface as ToolError."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import find_orphaned_records  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        find_orphaned_records,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_dictionary"] = [_DICT_REF]
     fake_client.raise_on_table["incident"] = RuntimeError("network down")

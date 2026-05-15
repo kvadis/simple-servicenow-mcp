@@ -155,10 +155,14 @@ async def resolve_incident(
     """
     client = _writable(ctx, instance, "resolve_incident")
     try:
-        return await client.update_record("incident", sys_id, {
-            "state": close_state,
-            "close_code": close_code,
-            "close_notes": close_notes,
-        })
+        return await client.update_record(
+            "incident",
+            sys_id,
+            {
+                "state": close_state,
+                "close_code": close_code,
+                "close_notes": close_notes,
+            },
+        )
     except Exception as e:
         raise ToolError(str(e)) from e

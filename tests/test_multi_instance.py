@@ -21,7 +21,6 @@ from simple_servicenow_mcp.instances import (
 )
 from simple_servicenow_mcp.server import AppContext, _parse_args
 
-
 # ── _merge ───────────────────────────────────────────────────────────
 
 
@@ -59,13 +58,16 @@ def test_load_instances_builds_a_client_per_entry(tmp_path: Path) -> None:
     fallback = Settings(  # type: ignore[call-arg]
         instance_url="", username="u", password="p"
     )
-    path = _write(tmp_path, {
-        "default": "prod",
-        "instances": {
-            "prod": {"instance_url": "https://prod.service-now.com"},
-            "dev":  {"instance_url": "https://dev.service-now.com"},
+    path = _write(
+        tmp_path,
+        {
+            "default": "prod",
+            "instances": {
+                "prod": {"instance_url": "https://prod.service-now.com"},
+                "dev": {"instance_url": "https://dev.service-now.com"},
+            },
         },
-    })
+    )
 
     registry = load_instances(path, fallback=fallback)
 
@@ -79,12 +81,15 @@ def test_load_instances_uses_first_entry_when_default_omitted(tmp_path: Path) ->
     fallback = Settings(  # type: ignore[call-arg]
         instance_url="", username="u", password="p"
     )
-    path = _write(tmp_path, {
-        "instances": {
-            "alpha": {"instance_url": "https://alpha.service-now.com"},
-            "beta":  {"instance_url": "https://beta.service-now.com"},
+    path = _write(
+        tmp_path,
+        {
+            "instances": {
+                "alpha": {"instance_url": "https://alpha.service-now.com"},
+                "beta": {"instance_url": "https://beta.service-now.com"},
+            },
         },
-    })
+    )
     registry = load_instances(path, fallback=fallback)
     assert registry.default_name == "alpha"
 
@@ -102,10 +107,13 @@ def test_load_instances_rejects_default_not_in_instances(tmp_path: Path) -> None
     fallback = Settings(  # type: ignore[call-arg]
         instance_url="", username="u", password="p"
     )
-    path = _write(tmp_path, {
-        "default": "missing",
-        "instances": {"prod": {"instance_url": "https://prod.service-now.com"}},
-    })
+    path = _write(
+        tmp_path,
+        {
+            "default": "missing",
+            "instances": {"prod": {"instance_url": "https://prod.service-now.com"}},
+        },
+    )
     with pytest.raises(ValueError, match="default 'missing'"):
         load_instances(path, fallback=fallback)
 

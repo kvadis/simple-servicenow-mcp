@@ -27,9 +27,7 @@ _SCHEMA_FIELDS = (
 _DEFAULT_SEARCH_FIELDS = "short_description,description,name,number"
 
 
-async def _validate_field_names(
-    client: ServiceNowClient, table: str, data: dict[str, Any]
-) -> None:
+async def _validate_field_names(client: ServiceNowClient, table: str, data: dict[str, Any]) -> None:
     """Reject obvious typos before sending to ServiceNow.
 
     Looks up the table's valid field set (walking inheritance) and raises
@@ -89,7 +87,12 @@ async def list_records(
     client = _client(ctx, instance)
     try:
         return await client.list_records(
-            table, query=query, fields=fields, limit=limit, offset=offset, display_value=display_value,
+            table,
+            query=query,
+            fields=fields,
+            limit=limit,
+            offset=offset,
+            display_value=display_value,
         )
     except Exception as e:
         raise ToolError(str(e)) from e
@@ -252,7 +255,11 @@ async def search_records(
     client = _client(ctx, instance)
     try:
         return await client.list_records(
-            table, query=query, fields=result_fields, limit=limit, offset=offset,
+            table,
+            query=query,
+            fields=result_fields,
+            limit=limit,
+            offset=offset,
         )
     except Exception as e:
         raise ToolError(str(e)) from e

@@ -144,7 +144,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--host", default="127.0.0.1", help="HTTP bind host (only used with --transport=http|sse)"
     )
     parser.add_argument(
-        "--port", type=int, default=8000, help="HTTP bind port (only used with --transport=http|sse)"
+        "--port",
+        type=int,
+        default=8000,
+        help="HTTP bind port (only used with --transport=http|sse)",
     )
     parser.add_argument(
         "--read-only",

@@ -70,7 +70,7 @@ def _retry_delay(resp: httpx.Response | None, attempt: int, settings: Settings) 
                 return min(float(ra), settings.retry_max_delay)
             except ValueError:
                 pass
-    return min(settings.retry_base_delay * (2 ** attempt), settings.retry_max_delay)
+    return min(settings.retry_base_delay * (2**attempt), settings.retry_max_delay)
 
 
 def _extract_error(resp: httpx.Response) -> ServiceNowAPIError:
@@ -161,7 +161,11 @@ class ServiceNowClient:
         if resp.is_error:
             logger.warning(
                 "auth.oauth.refresh_failed",
-                extra={"request_id": request_id, "status": resp.status_code, "duration_ms": duration_ms},
+                extra={
+                    "request_id": request_id,
+                    "status": resp.status_code,
+                    "duration_ms": duration_ms,
+                },
             )
             raise _extract_error(resp)
         body = resp.json()
@@ -169,7 +173,11 @@ class ServiceNowClient:
         self._token_expiry = time.time() + body["expires_in"] - 60
         logger.info(
             "auth.oauth.refreshed",
-            extra={"request_id": request_id, "duration_ms": duration_ms, "expires_in_s": body["expires_in"]},
+            extra={
+                "request_id": request_id,
+                "duration_ms": duration_ms,
+                "expires_in_s": body["expires_in"],
+            },
         )
 
     # ── Internal request helper ─────────────────────────────────────
@@ -188,16 +196,25 @@ class ServiceNowClient:
             try:
                 headers = await self._auth_headers()
                 resp = await self._http.request(method, url, headers=headers, **kwargs)
-            except (httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.RemoteProtocolError) as e:
+            except (
+                httpx.ConnectError,
+                httpx.ReadTimeout,
+                httpx.WriteTimeout,
+                httpx.RemoteProtocolError,
+            ) as e:
                 duration_ms = int((time.monotonic() - start) * 1000)
                 if attempt + 1 < max_attempts:
                     delay = _retry_delay(None, attempt, self._settings)
                     logger.warning(
                         "api.request.network_retry",
                         extra={
-                            "request_id": request_id, "method": method, "path": path,
-                            "duration_ms": duration_ms, "attempt": attempt + 1,
-                            "retry_in_s": round(delay, 2), "error": type(e).__name__,
+                            "request_id": request_id,
+                            "method": method,
+                            "path": path,
+                            "duration_ms": duration_ms,
+                            "attempt": attempt + 1,
+                            "retry_in_s": round(delay, 2),
+                            "error": type(e).__name__,
                         },
                     )
                     await asyncio.sleep(delay)
@@ -205,12 +222,19 @@ class ServiceNowClient:
                 logger.error(
                     "api.request.network_failed",
                     extra={
-                        "request_id": request_id, "method": method, "path": path,
-                        "duration_ms": duration_ms, "attempts": attempt + 1, "error": str(e),
+                        "request_id": request_id,
+                        "method": method,
+                        "path": path,
+                        "duration_ms": duration_ms,
+                        "attempts": attempt + 1,
+                        "error": str(e),
                     },
                 )
                 raise ServiceNowAPIError(
-                    0, f"Network error after {attempt + 1} attempts: {type(e).__name__}", str(e), retryable=True
+                    0,
+                    f"Network error after {attempt + 1} attempts: {type(e).__name__}",
+                    str(e),
+                    retryable=True,
                 ) from e
 
             duration_ms = int((time.monotonic() - start) * 1000)
@@ -221,9 +245,13 @@ class ServiceNowClient:
                     logger.warning(
                         "api.request.retry",
                         extra={
-                            "request_id": request_id, "method": method, "path": path,
-                            "status": resp.status_code, "duration_ms": duration_ms,
-                            "attempt": attempt + 1, "retry_in_s": round(delay, 2),
+                            "request_id": request_id,
+                            "method": method,
+                            "path": path,
+                            "status": resp.status_code,
+                            "duration_ms": duration_ms,
+                            "attempt": attempt + 1,
+                            "retry_in_s": round(delay, 2),
                         },
                     )
                     await asyncio.sleep(delay)
@@ -231,8 +259,11 @@ class ServiceNowClient:
                 logger.warning(
                     "api.request.error",
                     extra={
-                        "request_id": request_id, "method": method, "path": path,
-                        "status": resp.status_code, "duration_ms": duration_ms,
+                        "request_id": request_id,
+                        "method": method,
+                        "path": path,
+                        "status": resp.status_code,
+                        "duration_ms": duration_ms,
                         "attempts": attempt + 1,
                     },
                 )
@@ -241,8 +272,11 @@ class ServiceNowClient:
             logger.info(
                 "api.request.ok",
                 extra={
-                    "request_id": request_id, "method": method, "path": path,
-                    "status": resp.status_code, "duration_ms": duration_ms,
+                    "request_id": request_id,
+                    "method": method,
+                    "path": path,
+                    "status": resp.status_code,
+                    "duration_ms": duration_ms,
                     "attempts": attempt + 1,
                 },
             )
@@ -263,7 +297,9 @@ class ServiceNowClient:
         offset: int = 0,
         display_value: str = "false",
     ) -> list[dict[str, Any]]:
-        effective_limit = min(limit or self._settings.default_page_size, self._settings.max_page_size)
+        effective_limit = min(
+            limit or self._settings.default_page_size, self._settings.max_page_size
+        )
         params: dict[str, str] = {
             "sysparm_limit": str(effective_limit),
             "sysparm_offset": str(offset),
@@ -292,7 +328,9 @@ class ServiceNowClient:
         if fields:
             params["sysparm_fields"] = fields
 
-        resp = await self._request("GET", f"{self._base_url}/api/now/table/{table}/{sys_id}", params=params)
+        resp = await self._request(
+            "GET", f"{self._base_url}/api/now/table/{table}/{sys_id}", params=params
+        )
         return resp.json()["result"]
 
     async def create_record(self, table: str, data: dict[str, Any]) -> dict[str, Any]:
@@ -300,7 +338,9 @@ class ServiceNowClient:
         return resp.json()["result"]
 
     async def update_record(self, table: str, sys_id: str, data: dict[str, Any]) -> dict[str, Any]:
-        resp = await self._request("PATCH", f"{self._base_url}/api/now/table/{table}/{sys_id}", json=data)
+        resp = await self._request(
+            "PATCH", f"{self._base_url}/api/now/table/{table}/{sys_id}", json=data
+        )
         return resp.json()["result"]
 
     async def delete_record(self, table: str, sys_id: str) -> None:

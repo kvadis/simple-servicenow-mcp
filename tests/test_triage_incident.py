@@ -19,7 +19,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data ─────────────────────────────────────────────────────────
 
 _INCIDENT_NUMBER = "INC0010234"
@@ -53,6 +52,7 @@ _SIMILAR_RESOLVED = {
 
 # ── 1. Tool existence ───────────────────────────────────────────────────
 
+
 def test_triage_incident_tool_should_exist_in_incident_module() -> None:
     """triage_incident must be importable from tools.incident — not implemented yet."""
     # Arrange / Act
@@ -65,6 +65,7 @@ def test_triage_incident_tool_should_exist_in_incident_module() -> None:
 
 
 # ── 2-3. Incident resolution ────────────────────────────────────────────
+
 
 async def test_triage_incident_should_resolve_incident_by_number_first(
     fake_client,
@@ -110,6 +111,7 @@ async def test_triage_incident_should_return_error_json_when_incident_not_found(
 
 
 # ── 4-5. Journal gathering ──────────────────────────────────────────────
+
 
 async def test_triage_incident_should_query_journal_for_resolved_sys_id(
     fake_client,
@@ -161,6 +163,7 @@ async def test_triage_incident_should_surface_journal_entries_in_response(
 
 # ── 6-7. Similar resolved incidents ─────────────────────────────────────
 
+
 async def test_triage_incident_should_search_for_similar_resolved_incidents(
     fake_client,
     fake_ctx,
@@ -173,7 +176,9 @@ async def test_triage_incident_should_search_for_similar_resolved_incidents(
     # Arrange
     from simple_servicenow_mcp.tools.incident import triage_incident  # type: ignore[attr-defined]
 
-    fake_client.list_responses["incident"] = [_INCIDENT_RECORD]  # also returned for the similar search
+    fake_client.list_responses["incident"] = [
+        _INCIDENT_RECORD
+    ]  # also returned for the similar search
     fake_client.list_responses["sys_journal_field"] = []
 
     # Act
@@ -221,6 +226,7 @@ async def test_triage_incident_should_derive_search_keywords_from_short_descript
 
 # ── 8. Response shape ───────────────────────────────────────────────────
 
+
 async def test_triage_incident_should_return_incident_journal_and_similar_keys(
     fake_client,
     fake_ctx,
@@ -244,6 +250,7 @@ async def test_triage_incident_should_return_incident_journal_and_similar_keys(
 
 
 # ── 9. Error wrapping ───────────────────────────────────────────────────
+
 
 async def test_triage_incident_should_wrap_client_errors_in_tool_error(
     fake_client,

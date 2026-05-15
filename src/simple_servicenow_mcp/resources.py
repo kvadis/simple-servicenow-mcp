@@ -19,22 +19,26 @@ async def instance_info(ctx: Context) -> str:
     """
     app: AppContext = ctx.request_context.lifespan_context
     if app.registry is not None:
-        return json.dumps({
-            "mode": "multi-instance",
-            "default": app.registry.default_name,
-            "instances": {
-                name: {
-                    "url": client.settings.instance_url,
-                    "auth_method": client.settings.auth_method,
-                }
-                for name, client in app.registry.clients.items()
-            },
-        })
-    return json.dumps({
-        "mode": "single-instance",
-        "url": app.settings.instance_url,
-        "auth_method": app.settings.auth_method,
-    })
+        return json.dumps(
+            {
+                "mode": "multi-instance",
+                "default": app.registry.default_name,
+                "instances": {
+                    name: {
+                        "url": client.settings.instance_url,
+                        "auth_method": client.settings.auth_method,
+                    }
+                    for name, client in app.registry.clients.items()
+                },
+            }
+        )
+    return json.dumps(
+        {
+            "mode": "single-instance",
+            "url": app.settings.instance_url,
+            "auth_method": app.settings.auth_method,
+        }
+    )
 
 
 @mcp.resource("servicenow://health")
@@ -48,18 +52,22 @@ async def health(ctx: Context) -> str:
     app: AppContext = ctx.request_context.lifespan_context
     try:
         await app.client.list_records("sys_user", fields="sys_id", limit=1)
-        return json.dumps({
-            "status": "ok",
-            "instance": app.settings.instance_url,
-            "auth_method": app.settings.auth_method,
-        })
+        return json.dumps(
+            {
+                "status": "ok",
+                "instance": app.settings.instance_url,
+                "auth_method": app.settings.auth_method,
+            }
+        )
     except ServiceNowAPIError as e:
-        return json.dumps({
-            "status": "error",
-            "code": e.status,
-            "message": e.message,
-            "detail": e.detail,
-        })
+        return json.dumps(
+            {
+                "status": "error",
+                "code": e.status,
+                "message": e.message,
+                "detail": e.detail,
+            }
+        )
     except Exception as e:  # network failures, DNS, etc.
         return json.dumps({"status": "error", "message": str(e)})
 

@@ -198,9 +198,7 @@ async def upload_attachment(
 
     client = _writable(ctx, instance, "upload_attachment")
     try:
-        return await client.attachment_upload(
-            table, sys_id, file_name, body, content_type
-        )
+        return await client.attachment_upload(table, sys_id, file_name, body, content_type)
     except Exception as e:
         raise ToolError(str(e)) from e
 

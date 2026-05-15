@@ -52,7 +52,7 @@ def analyze_catalog(category: str | None = None) -> list[base.Message]:
 
 Steps:
 1. Use list_catalog_categories to get an overview of the catalog structure.
-2. Use list_catalog_items{f' with category="{category}"' if category else ''} to list items.
+2. Use list_catalog_items{f' with category="{category}"' if category else ""} to list items.
 3. For each item, use get_catalog_item_variables to inspect the form variables.
 4. Analyze for:
    - Naming consistency across items and variables
@@ -95,7 +95,8 @@ def upgrade_readiness_review(
         f"Cross-reference your findings against the documented deprecations for the "
         f"**{target_version}** release. For each pattern flagged, note explicitly "
         f"whether it is *removed*, *deprecated*, or *discouraged* in that release."
-        if target_version else ""
+        if target_version
+        else ""
     )
     return [
         base.UserMessage(

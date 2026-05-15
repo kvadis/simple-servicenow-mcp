@@ -19,7 +19,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data reused by several tests ─────────────────────────────────
 
 _SCOPE_RECORD = {"sys_id": "abc1111111111111111111111111aaaa", "scope": "x_co_app"}
@@ -47,6 +46,7 @@ _BR_CLEAN = {
 
 # ── 1. Module/tool existence ────────────────────────────────────────────
 
+
 def test_audit_scope_tool_should_exist_in_audit_module() -> None:
     """audit_scope must be importable from tools.audit — module doesn't exist yet."""
     # Arrange / Act
@@ -59,6 +59,7 @@ def test_audit_scope_tool_should_exist_in_audit_module() -> None:
 
 
 # ── 2-3. Scope resolution against sys_scope ─────────────────────────────
+
 
 async def test_audit_scope_should_resolve_scope_via_sys_scope_first(
     fake_client,
@@ -102,6 +103,7 @@ async def test_audit_scope_should_return_error_json_when_scope_not_found(
 
 
 # ── 4-5. Querying the script tables by resolved scope sys_id ────────────
+
 
 async def test_audit_scope_should_query_business_rules_filtered_by_scope_sys_id(
     fake_client,
@@ -153,6 +155,7 @@ async def test_audit_scope_should_query_script_includes_filtered_by_scope_sys_id
 
 # ── 6-7. Detector rules ─────────────────────────────────────────────────
 
+
 async def test_audit_scope_should_flag_hardcoded_sys_id_in_script_body(
     fake_client,
     fake_ctx,
@@ -172,9 +175,9 @@ async def test_audit_scope_should_flag_hardcoded_sys_id_in_script_body(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
-        if f.get("type") == "hardcoded_sys_id"
-        and f.get("sys_id") == _BR_WITH_HARDCODED["sys_id"]
+        f
+        for f in findings
+        if f.get("type") == "hardcoded_sys_id" and f.get("sys_id") == _BR_WITH_HARDCODED["sys_id"]
     ]
     assert matching, (
         f"expected a hardcoded_sys_id finding for {_BR_WITH_HARDCODED['sys_id']}, "
@@ -204,9 +207,9 @@ async def test_audit_scope_should_flag_deprecated_gs_print_in_script_body(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
-        if f.get("type") == "deprecated_api"
-        and f.get("sys_id") == _SI_WITH_GS_PRINT["sys_id"]
+        f
+        for f in findings
+        if f.get("type") == "deprecated_api" and f.get("sys_id") == _SI_WITH_GS_PRINT["sys_id"]
     ]
     assert matching, (
         f"expected a deprecated_api finding for gs.print in {_SI_WITH_GS_PRINT['sys_id']}, "
@@ -218,6 +221,7 @@ async def test_audit_scope_should_flag_deprecated_gs_print_in_script_body(
 
 
 # ── 8. Audit summary metadata ───────────────────────────────────────────
+
 
 async def test_audit_scope_should_return_records_audited_count_matching_total_scripts(
     fake_client,
@@ -240,6 +244,7 @@ async def test_audit_scope_should_return_records_audited_count_matching_total_sc
 
 
 # ── 9. Scope identity in response (PDI-observed: scope records carry scope+name) ──
+
 
 async def test_audit_scope_should_echo_scope_input_in_response(
     fake_client,
@@ -267,6 +272,7 @@ async def test_audit_scope_should_echo_scope_input_in_response(
 
 
 # ── 10. Error wrapping ──────────────────────────────────────────────────
+
 
 async def test_audit_scope_should_wrap_unexpected_client_errors_in_tool_error(
     fake_client,

@@ -196,7 +196,9 @@ async def list_ui_actions(
 
 @mcp.tool(annotations=_a.READ)
 async def get_script_body(
-    table: Literal["sys_script", "sys_script_include", "sys_script_client", "sys_ui_policy", "sys_ui_action"],
+    table: Literal[
+        "sys_script", "sys_script_include", "sys_script_client", "sys_ui_policy", "sys_ui_action"
+    ],
     sys_id: str,
     ctx: Context,
     instance: str | None = None,

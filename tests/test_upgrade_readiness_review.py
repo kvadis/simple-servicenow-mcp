@@ -22,7 +22,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data ─────────────────────────────────────────────────────────
 
 _SCOPE_RECORD = {"sys_id": "scope000000000000000000000000abcd", "scope": "x_co_app"}
@@ -67,6 +66,7 @@ def _stub_scope_with_artefacts(fake_client, **artefacts):
 
 # ── 1. Tool existence ───────────────────────────────────────────────────
 
+
 def test_upgrade_readiness_review_tool_should_exist_in_audit_module() -> None:
     """upgrade_readiness_review must be importable from tools.audit — not implemented yet."""
     # Arrange / Act
@@ -80,13 +80,16 @@ def test_upgrade_readiness_review_tool_should_exist_in_audit_module() -> None:
 
 # ── 2-3. Scope resolution ───────────────────────────────────────────────
 
+
 async def test_upgrade_readiness_review_should_resolve_scope_via_sys_scope_first(
     fake_client,
     fake_ctx,
 ) -> None:
     """First REST call resolves the scope by name (mirrors audit_scope contract)."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client)
 
@@ -106,7 +109,9 @@ async def test_upgrade_readiness_review_should_return_error_json_when_scope_not_
 ) -> None:
     """Unknown scope returns a JSON error payload — must not raise."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_scope"] = []
 
@@ -121,6 +126,7 @@ async def test_upgrade_readiness_review_should_return_error_json_when_scope_not_
 
 # ── 4. Querying all five script tables ──────────────────────────────────
 
+
 async def test_upgrade_readiness_review_should_query_all_five_script_tables(
     fake_client,
     fake_ctx,
@@ -128,7 +134,9 @@ async def test_upgrade_readiness_review_should_query_all_five_script_tables(
     """Discovery phase must hit BR, SI, client scripts, UI policies, UI actions
     (per prompts.py:108-112). All five filter by the resolved scope sys_id."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client)
 
@@ -160,6 +168,7 @@ async def test_upgrade_readiness_review_should_query_all_five_script_tables(
 
 # ── 5. scriptISNOTEMPTY filter for UI policies / UI actions ─────────────
 
+
 async def test_upgrade_readiness_review_should_skip_ui_policies_without_script(
     fake_client,
     fake_ctx,
@@ -168,7 +177,9 @@ async def test_upgrade_readiness_review_should_skip_ui_policies_without_script(
     (per prompts.py:111-112). Otherwise we audit thousands of OOTB rule-only
     records with nothing to grep."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client)
 
@@ -187,6 +198,7 @@ async def test_upgrade_readiness_review_should_skip_ui_policies_without_script(
 
 # ── 6-8. Severity-graded detectors ──────────────────────────────────────
 
+
 async def test_upgrade_readiness_review_should_flag_get_xml_wait_as_blocking(
     fake_client,
     fake_ctx,
@@ -196,7 +208,9 @@ async def test_upgrade_readiness_review_should_flag_get_xml_wait_as_blocking(
     Severity ladder from prompts.py:118-135: blocking → risk → info.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client, sys_script=[_BR_WITH_GET_XML_WAIT])
 
@@ -207,9 +221,9 @@ async def test_upgrade_readiness_review_should_flag_get_xml_wait_as_blocking(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
-        if f.get("sys_id") == _BR_WITH_GET_XML_WAIT["sys_id"]
-        and f.get("severity") == "blocking"
+        f
+        for f in findings
+        if f.get("sys_id") == _BR_WITH_GET_XML_WAIT["sys_id"] and f.get("severity") == "blocking"
     ]
     assert matching, (
         f"expected a blocking-severity finding for getXMLWait in "
@@ -224,7 +238,9 @@ async def test_upgrade_readiness_review_should_flag_dom_access_in_client_scripts
 ) -> None:
     """Direct DOM access in client scripts breaks on Next Experience — blocking."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client, sys_script_client=[_CS_WITH_DOM_ACCESS])
 
@@ -235,9 +251,9 @@ async def test_upgrade_readiness_review_should_flag_dom_access_in_client_scripts
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
-        if f.get("sys_id") == _CS_WITH_DOM_ACCESS["sys_id"]
-        and f.get("severity") == "blocking"
+        f
+        for f in findings
+        if f.get("sys_id") == _CS_WITH_DOM_ACCESS["sys_id"] and f.get("severity") == "blocking"
     ]
     assert matching, (
         f"expected a blocking-severity finding for document.* DOM access in "
@@ -251,7 +267,9 @@ async def test_upgrade_readiness_review_should_flag_gs_log_as_info(
 ) -> None:
     """Legacy `gs.log(` is an info-level modernisation hint, not a blocker."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client, sys_script_include=[_SI_WITH_GS_LOG])
 
@@ -262,9 +280,9 @@ async def test_upgrade_readiness_review_should_flag_gs_log_as_info(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
-        if f.get("sys_id") == _SI_WITH_GS_LOG["sys_id"]
-        and f.get("severity") == "info"
+        f
+        for f in findings
+        if f.get("sys_id") == _SI_WITH_GS_LOG["sys_id"] and f.get("severity") == "info"
     ]
     assert matching, (
         f"expected an info-severity finding for gs.log( in "
@@ -274,6 +292,7 @@ async def test_upgrade_readiness_review_should_flag_gs_log_as_info(
 
 # ── 9. Severity summary ─────────────────────────────────────────────────
 
+
 async def test_upgrade_readiness_review_should_include_severity_counts_in_summary(
     fake_client,
     fake_ctx,
@@ -281,13 +300,15 @@ async def test_upgrade_readiness_review_should_include_severity_counts_in_summar
     """Top-level `severity_counts` aggregates findings by severity for the
     executive summary (per prompts.py:142-144)."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(
         fake_client,
-        sys_script=[_BR_WITH_GET_XML_WAIT],            # 1 blocking
-        sys_script_client=[_CS_WITH_DOM_ACCESS],       # 1 blocking
-        sys_script_include=[_SI_WITH_GS_LOG],          # 1 info
+        sys_script=[_BR_WITH_GET_XML_WAIT],  # 1 blocking
+        sys_script_client=[_CS_WITH_DOM_ACCESS],  # 1 blocking
+        sys_script_include=[_SI_WITH_GS_LOG],  # 1 info
     )
 
     # Act
@@ -302,6 +323,7 @@ async def test_upgrade_readiness_review_should_include_severity_counts_in_summar
 
 # ── 10. Target version echo ─────────────────────────────────────────────
 
+
 async def test_upgrade_readiness_review_should_echo_target_version_when_provided(
     fake_client,
     fake_ctx,
@@ -309,7 +331,9 @@ async def test_upgrade_readiness_review_should_echo_target_version_when_provided
     """A `target_version` argument is surfaced in the output so reviewers know
     which release the report was scoped to (per prompts.py:78,138-99)."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     _stub_scope_with_artefacts(fake_client)
 
@@ -323,13 +347,16 @@ async def test_upgrade_readiness_review_should_echo_target_version_when_provided
 
 # ── 11. Error wrapping ──────────────────────────────────────────────────
 
+
 async def test_upgrade_readiness_review_should_wrap_client_errors_in_tool_error(
     fake_client,
     fake_ctx,
 ) -> None:
     """Unexpected client errors mid-audit must be re-raised as ToolError."""
     # Arrange
-    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.audit import (
+        upgrade_readiness_review,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sys_scope"] = [_SCOPE_RECORD]
     fake_client.raise_on_table["sys_ui_action"] = RuntimeError("network down")

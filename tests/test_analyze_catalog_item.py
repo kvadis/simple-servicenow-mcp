@@ -19,7 +19,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data ─────────────────────────────────────────────────────────
 
 _ITEM_SYS_ID = "item000000000000000000000000aaaa"
@@ -68,6 +67,7 @@ def _make_mandatory_vars(count: int) -> list[dict]:
 
 # ── 1. Module/tool existence ────────────────────────────────────────────
 
+
 def test_analyze_catalog_item_tool_should_exist_in_catalog_module() -> None:
     """analyze_catalog_item must be importable from tools.catalog — not yet implemented."""
     # Arrange / Act
@@ -81,13 +81,16 @@ def test_analyze_catalog_item_tool_should_exist_in_catalog_module() -> None:
 
 # ── 2-3. Data gathering ─────────────────────────────────────────────────
 
+
 async def test_analyze_catalog_item_should_query_sc_cat_item_by_sys_id_first(
     fake_client,
     fake_ctx,
 ) -> None:
     """First REST call must resolve the item by sys_id against sc_cat_item."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = [_GOOD_VAR]
@@ -112,7 +115,9 @@ async def test_analyze_catalog_item_should_query_variables_via_item_option_new(
     """Variables are pulled from item_option_new filtered by cat_item — matches
     the existing get_catalog_item_variables pattern at tools/catalog.py:99."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = [_GOOD_VAR]
@@ -129,13 +134,16 @@ async def test_analyze_catalog_item_should_query_variables_via_item_option_new(
 
 # ── 4. Error path ───────────────────────────────────────────────────────
 
+
 async def test_analyze_catalog_item_should_return_error_json_when_item_not_found(
     fake_client,
     fake_ctx,
 ) -> None:
     """Unknown sys_id returns a JSON error payload — must not raise."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = []  # no match
 
@@ -150,13 +158,16 @@ async def test_analyze_catalog_item_should_return_error_json_when_item_not_found
 
 # ── 5-8. UX-quality detectors ───────────────────────────────────────────
 
+
 async def test_analyze_catalog_item_should_flag_missing_short_description(
     fake_client,
     fake_ctx,
 ) -> None:
     """Empty or whitespace short_description produces a missing_short_description finding."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_ITEM_NO_SHORT_DESC]
     fake_client.list_responses["item_option_new"] = [_GOOD_VAR]
@@ -168,9 +179,7 @@ async def test_analyze_catalog_item_should_flag_missing_short_description(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [f for f in findings if f.get("type") == "missing_short_description"]
-    assert matching, (
-        f"expected a missing_short_description finding, got findings: {findings!r}"
-    )
+    assert matching, f"expected a missing_short_description finding, got findings: {findings!r}"
 
 
 async def test_analyze_catalog_item_should_flag_item_with_no_variables(
@@ -179,7 +188,9 @@ async def test_analyze_catalog_item_should_flag_item_with_no_variables(
 ) -> None:
     """A catalog item with zero variables is almost certainly misconfigured."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = []
@@ -202,7 +213,9 @@ async def test_analyze_catalog_item_should_flag_variable_missing_question_text(
 ) -> None:
     """A variable without question_text shows up unlabelled on the form."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = [_GOOD_VAR, _VAR_NO_QUESTION_TEXT]
@@ -214,7 +227,8 @@ async def test_analyze_catalog_item_should_flag_variable_missing_question_text(
     parsed = json.loads(result)
     findings = parsed.get("findings", [])
     matching = [
-        f for f in findings
+        f
+        for f in findings
         if f.get("type") == "missing_question_text"
         and f.get("sys_id") == _VAR_NO_QUESTION_TEXT["sys_id"]
     ]
@@ -234,7 +248,9 @@ async def test_analyze_catalog_item_should_flag_excessive_mandatory_variables(
     guidance at prompts.py:62. Re-tune in GREEN if user feedback says otherwise.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = _make_mandatory_vars(6)
@@ -247,12 +263,12 @@ async def test_analyze_catalog_item_should_flag_excessive_mandatory_variables(
     findings = parsed.get("findings", [])
     matching = [f for f in findings if f.get("type") == "excessive_mandatory_variables"]
     assert matching, (
-        f"expected excessive_mandatory_variables finding for 6 mandatory fields, "
-        f"got: {findings!r}"
+        f"expected excessive_mandatory_variables finding for 6 mandatory fields, got: {findings!r}"
     )
 
 
 # ── 9. Summary metadata ─────────────────────────────────────────────────
+
 
 async def test_analyze_catalog_item_should_return_variable_count_in_response(
     fake_client,
@@ -260,7 +276,9 @@ async def test_analyze_catalog_item_should_return_variable_count_in_response(
 ) -> None:
     """Top-level variable_count equals number of variables inspected."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = _make_mandatory_vars(3)
@@ -275,6 +293,7 @@ async def test_analyze_catalog_item_should_return_variable_count_in_response(
 
 # ── 9b. Item identity in response (PDI-observed: items carry name) ──────
 
+
 async def test_analyze_catalog_item_should_echo_item_name_and_sys_id_in_response(
     fake_client,
     fake_ctx,
@@ -286,7 +305,9 @@ async def test_analyze_catalog_item_should_echo_item_name_and_sys_id_in_response
     unreadable when the LLM analyses several items.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.list_responses["item_option_new"] = [_GOOD_VAR]
@@ -302,13 +323,16 @@ async def test_analyze_catalog_item_should_echo_item_name_and_sys_id_in_response
 
 # ── 10. Error wrapping ──────────────────────────────────────────────────
 
+
 async def test_analyze_catalog_item_should_wrap_client_errors_in_tool_error(
     fake_client,
     fake_ctx,
 ) -> None:
     """Underlying client errors mid-analysis must be re-raised as ToolError."""
     # Arrange
-    from simple_servicenow_mcp.tools.catalog import analyze_catalog_item  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.catalog import (
+        analyze_catalog_item,  # type: ignore[attr-defined]
+    )
 
     fake_client.list_responses["sc_cat_item"] = [_HEALTHY_ITEM]
     fake_client.raise_on_table["item_option_new"] = RuntimeError("network down")
