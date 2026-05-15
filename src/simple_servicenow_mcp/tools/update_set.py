@@ -29,9 +29,7 @@ _CHANGE_FIELDS = (
     "sys_id,name,type,target_name,action,update_set,category,"
     "sys_created_by,sys_created_on,sys_updated_on,payload"
 )
-_CHANGE_LIGHT_FIELDS = (
-    "sys_id,name,type,target_name,action,category,sys_created_by,sys_created_on"
-)
+_CHANGE_LIGHT_FIELDS = "sys_id,name,type,target_name,action,category,sys_created_by,sys_created_on"
 
 # System tables — changes here are higher-risk and worth flagging in a summary.
 _HIGH_RISK_TYPES = {
@@ -181,9 +179,7 @@ async def summarize_update_set(
     """
     client = _client(ctx, instance)
     try:
-        record = await client.get_record(
-            "sys_update_set", update_set_sys_id, fields=_SET_FIELDS
-        )
+        record = await client.get_record("sys_update_set", update_set_sys_id, fields=_SET_FIELDS)
         # Pull up to 500 changes for the summary; deeper sets can be browsed via list_update_set_changes
         changes = await client.list_records(
             "sys_update_xml",

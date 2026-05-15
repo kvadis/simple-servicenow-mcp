@@ -48,7 +48,9 @@ async def test_list_cis_combines_class_and_extra_query(fake_client) -> None:
 
     await list_cis(_ctx(fake_client), ci_class="cmdb_ci_server", query="operational_status=1")  # type: ignore[arg-type]
 
-    assert fake_client.calls[0].kwargs["query"] == "sys_class_name=cmdb_ci_server^operational_status=1"
+    assert (
+        fake_client.calls[0].kwargs["query"] == "sys_class_name=cmdb_ci_server^operational_status=1"
+    )
 
 
 async def test_get_ci_calls_cmdb_ci_with_sys_id(fake_client) -> None:

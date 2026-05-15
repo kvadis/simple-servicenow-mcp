@@ -63,7 +63,11 @@ class FakeAttachmentClient:
         content_type: str = "application/octet-stream",
     ) -> dict[str, Any]:
         self.calls.append(
-            ("attachment_upload", (table_name, table_sys_id, file_name), {"content": content, "content_type": content_type})
+            (
+                "attachment_upload",
+                (table_name, table_sys_id, file_name),
+                {"content": content, "content_type": content_type},
+            )
         )
         return self.upload_response
 
@@ -156,7 +160,11 @@ async def test_upload_attachment_text_encoding_sends_utf8_bytes() -> None:
     client = FakeAttachmentClient()
 
     result = await upload_attachment(
-        "incident", "INC123", "note.txt", "hello", _ctx(client),  # type: ignore[arg-type]
+        "incident",
+        "INC123",
+        "note.txt",
+        "hello",
+        _ctx(client),  # type: ignore[arg-type]
         content_type="text/plain",
         encoding="text",
     )
@@ -175,7 +183,11 @@ async def test_upload_attachment_base64_encoding_decodes_first() -> None:
     payload = base64.b64encode(b"\x89PNG\r\n").decode("ascii")
 
     await upload_attachment(
-        "incident", "INC123", "icon.png", payload, _ctx(client),  # type: ignore[arg-type]
+        "incident",
+        "INC123",
+        "icon.png",
+        payload,
+        _ctx(client),  # type: ignore[arg-type]
         content_type="image/png",
         encoding="base64",
     )
@@ -190,7 +202,11 @@ async def test_upload_attachment_rejects_invalid_base64() -> None:
     client = FakeAttachmentClient()
     with pytest.raises(ToolError, match="not valid base64"):
         await upload_attachment(
-            "incident", "INC123", "x.bin", "not-base64-!@#", _ctx(client),  # type: ignore[arg-type]
+            "incident",
+            "INC123",
+            "x.bin",
+            "not-base64-!@#",
+            _ctx(client),  # type: ignore[arg-type]
             encoding="base64",
         )
 
@@ -201,7 +217,11 @@ async def test_upload_attachment_refused_in_read_only() -> None:
     client = FakeAttachmentClient()
     with pytest.raises(ToolError, match="read-only mode"):
         await upload_attachment(
-            "incident", "INC123", "x.txt", "x", _ctx(client, read_only=True),  # type: ignore[arg-type]
+            "incident",
+            "INC123",
+            "x.txt",
+            "x",
+            _ctx(client, read_only=True),  # type: ignore[arg-type]
         )
 
 

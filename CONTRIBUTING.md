@@ -22,8 +22,15 @@ pre-commit install
 Confirm the test suite passes:
 
 ```bash
-pytest -q
+pytest -q              # default — skips WIP test files (CI-equivalent)
+pytest -q --run-wip    # include red-state TDD tests for features in flight
 ```
+
+The `--run-wip` flag includes test files for features being developed in
+parallel sessions. Those tests are expected to fail until the feature lands —
+they're the work signal for whoever's implementing them. CI runs without
+`--run-wip` so a red WIP test doesn't block the main branch. See
+`tests/conftest.py` for the gating logic.
 
 Optional but recommended: interactively test changes via the MCP Inspector against a [PDI](https://developer.servicenow.com) (personal developer instance):
 

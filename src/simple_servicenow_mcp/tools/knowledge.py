@@ -103,9 +103,7 @@ async def search_knowledge(
     """
     if not keyword.strip():
         raise ToolError("keyword must be non-empty")
-    search = "^OR".join(
-        f"{f}LIKE{keyword}" for f in ("short_description", "text", "keywords")
-    )
+    search = "^OR".join(f"{f}LIKE{keyword}" for f in ("short_description", "text", "keywords"))
     parts = [search]
     if state:
         parts.append(f"workflow_state={state}")

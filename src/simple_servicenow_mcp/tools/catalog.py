@@ -17,7 +17,9 @@ from . import _annotations as _a
 
 _CAT_FIELDS = "sys_id,title,description,parent,active"
 _ITEM_FIELDS = "sys_id,name,short_description,category,active,order,type,sys_scope"
-_VAR_FIELDS = "sys_id,name,question_text,type,mandatory,default_value,order,active,reference,lookup_table"
+_VAR_FIELDS = (
+    "sys_id,name,question_text,type,mandatory,default_value,order,active,reference,lookup_table"
+)
 _MANDATORY_VAR_LIMIT = 5
 
 
@@ -167,28 +169,32 @@ async def analyze_catalog_item(
 
         for var in variables:
             if not (var.get("question_text") or "").strip():
-                findings.append({
-                    "type": "missing_question_text",
-                    "sys_id": var.get("sys_id", ""),
-                    "name": var.get("name", ""),
-                })
+                findings.append(
+                    {
+                        "type": "missing_question_text",
+                        "sys_id": var.get("sys_id", ""),
+                        "name": var.get("name", ""),
+                    }
+                )
 
-        mandatory_count = sum(
-            1 for v in variables if str(v.get("mandatory", "")).lower() == "true"
-        )
+        mandatory_count = sum(1 for v in variables if str(v.get("mandatory", "")).lower() == "true")
         if mandatory_count > _MANDATORY_VAR_LIMIT:
-            findings.append({
-                "type": "excessive_mandatory_variables",
-                "count": mandatory_count,
-                "limit": _MANDATORY_VAR_LIMIT,
-            })
+            findings.append(
+                {
+                    "type": "excessive_mandatory_variables",
+                    "count": mandatory_count,
+                    "limit": _MANDATORY_VAR_LIMIT,
+                }
+            )
 
-        return json.dumps({
-            "sys_id": item.get("sys_id", item_sys_id),
-            "name": item.get("name", ""),
-            "variable_count": len(variables),
-            "findings": findings,
-        })
+        return json.dumps(
+            {
+                "sys_id": item.get("sys_id", item_sys_id),
+                "name": item.get("name", ""),
+                "variable_count": len(variables),
+                "findings": findings,
+            }
+        )
     except ToolError:
         raise
     except Exception as e:

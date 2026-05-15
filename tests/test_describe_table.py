@@ -6,8 +6,6 @@ structuredContent) so the return assertion checks the list directly.
 
 from __future__ import annotations
 
-import pytest
-
 
 def test_describe_table_tool_should_exist_in_table_module() -> None:
     """describe_table must be importable from tools.table."""
@@ -21,7 +19,7 @@ def test_describe_table_tool_should_exist_in_table_module() -> None:
 
 
 async def test_describe_table_should_query_sys_dictionary_filtered_by_table_name(
-    fake_client: "FakeServiceNowClient",  # type: ignore[name-defined]  # noqa: F821
+    fake_client: FakeServiceNowClient,  # type: ignore[name-defined]  # noqa: F821
     fake_ctx,
 ) -> None:
     """describe_table must query sys_dictionary for the requested table only."""
@@ -39,7 +37,7 @@ async def test_describe_table_should_query_sys_dictionary_filtered_by_table_name
 
 
 async def test_describe_table_should_return_list_of_field_records(
-    fake_client: "FakeServiceNowClient",  # type: ignore[name-defined]  # noqa: F821
+    fake_client: FakeServiceNowClient,  # type: ignore[name-defined]  # noqa: F821
     fake_ctx,
 ) -> None:
     """describe_table must return the underlying field records as a native list."""
@@ -59,7 +57,7 @@ async def test_describe_table_should_return_list_of_field_records(
 
 
 async def test_describe_table_should_return_empty_list_when_table_does_not_exist(
-    fake_client: "FakeServiceNowClient",  # type: ignore[name-defined]  # noqa: F821
+    fake_client: FakeServiceNowClient,  # type: ignore[name-defined]  # noqa: F821
     fake_ctx,
 ) -> None:
     """Unknown table → PDI returns 200 + empty list; describe_table must surface that as []."""

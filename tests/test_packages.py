@@ -40,7 +40,7 @@ def test_uppercase_normalised_to_lower() -> None:
 
 
 def test_unknown_package_raises_with_helpful_message() -> None:
-    with pytest.raises(ValueError, match="Unknown SN_TOOL_PACKAGES.*notathing"):
+    with pytest.raises(ValueError, match=r"Unknown SN_TOOL_PACKAGES.*notathing"):
         parse_packages("core,notathing")
 
 

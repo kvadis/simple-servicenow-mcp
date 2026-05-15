@@ -21,17 +21,32 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Sample data ─────────────────────────────────────────────────────────
 
 _SCOPE_A = {"sys_id": "scopeAaaaaaaaaaaaaaaaaaaaaaaaaaaa", "scope": "x_co_dev"}
 _SCOPE_B = {"sys_id": "scopeBbbbbbbbbbbbbbbbbbbbbbbbbbbb", "scope": "x_co_prod"}
 
 # Three script includes: one only in A, one only in B, one shared.
-_SI_ONLY_A = {"sys_id": "si_a_only_00000000000000000000000", "name": "DevHelper", "api_name": "x_co_dev.DevHelper"}
-_SI_SHARED_IN_A = {"sys_id": "si_a_share_0000000000000000000000", "name": "SharedUtils", "api_name": "x_co_dev.SharedUtils"}
-_SI_ONLY_B = {"sys_id": "si_b_only_00000000000000000000000", "name": "ProdOnly", "api_name": "x_co_prod.ProdOnly"}
-_SI_SHARED_IN_B = {"sys_id": "si_b_share_0000000000000000000000", "name": "SharedUtils", "api_name": "x_co_prod.SharedUtils"}
+_SI_ONLY_A = {
+    "sys_id": "si_a_only_00000000000000000000000",
+    "name": "DevHelper",
+    "api_name": "x_co_dev.DevHelper",
+}
+_SI_SHARED_IN_A = {
+    "sys_id": "si_a_share_0000000000000000000000",
+    "name": "SharedUtils",
+    "api_name": "x_co_dev.SharedUtils",
+}
+_SI_ONLY_B = {
+    "sys_id": "si_b_only_00000000000000000000000",
+    "name": "ProdOnly",
+    "api_name": "x_co_prod.ProdOnly",
+}
+_SI_SHARED_IN_B = {
+    "sys_id": "si_b_share_0000000000000000000000",
+    "name": "SharedUtils",
+    "api_name": "x_co_prod.SharedUtils",
+}
 
 
 def _stub_two_scopes(fake_client):
@@ -46,6 +61,7 @@ def _stub_two_scopes(fake_client):
 
 # ── 1. Tool existence ───────────────────────────────────────────────────
 
+
 def test_compare_scopes_tool_should_exist_in_audit_module() -> None:
     """compare_scopes must be importable from tools.audit — not implemented yet."""
     # Arrange / Act
@@ -58,6 +74,7 @@ def test_compare_scopes_tool_should_exist_in_audit_module() -> None:
 
 
 # ── 2-3. Scope resolution ───────────────────────────────────────────────
+
 
 async def test_compare_scopes_should_resolve_both_scopes_via_sys_scope(
     fake_client,
@@ -79,8 +96,12 @@ async def test_compare_scopes_should_resolve_both_scopes_via_sys_scope(
         f"expected 2 sys_scope lookups (one per scope), got {len(scope_calls)}"
     )
     queries = [c.kwargs.get("query") or "" for c in scope_calls]
-    assert any("scope=x_co_dev" in q for q in queries), f"missing scope_a lookup, queries: {queries!r}"
-    assert any("scope=x_co_prod" in q for q in queries), f"missing scope_b lookup, queries: {queries!r}"
+    assert any("scope=x_co_dev" in q for q in queries), (
+        f"missing scope_a lookup, queries: {queries!r}"
+    )
+    assert any("scope=x_co_prod" in q for q in queries), (
+        f"missing scope_b lookup, queries: {queries!r}"
+    )
 
 
 async def test_compare_scopes_should_return_error_json_when_scope_a_not_found(
@@ -123,6 +144,7 @@ async def test_compare_scopes_should_return_error_json_when_scope_b_not_found(
 
 # ── 4. Default table is sys_script_include ──────────────────────────────
 
+
 async def test_compare_scopes_should_default_to_diffing_script_includes(
     fake_client,
     fake_ctx,
@@ -140,8 +162,7 @@ async def test_compare_scopes_should_default_to_diffing_script_includes(
 
     # Assert
     diffed_tables = {
-        c.table for c in fake_client.calls
-        if c.table not in ("sys_scope",) and c.method == "list"
+        c.table for c in fake_client.calls if c.table not in ("sys_scope",) and c.method == "list"
     }
     assert "sys_script_include" in diffed_tables, (
         f"default table must be sys_script_include, queried: {diffed_tables!r}"
@@ -164,8 +185,7 @@ async def test_compare_scopes_should_honour_explicit_table_override(
 
     # Assert
     diffed_tables = {
-        c.table for c in fake_client.calls
-        if c.table != "sys_scope" and c.method == "list"
+        c.table for c in fake_client.calls if c.table != "sys_scope" and c.method == "list"
     }
     assert "sys_script" in diffed_tables
     assert "sys_script_include" not in diffed_tables, (
@@ -174,6 +194,7 @@ async def test_compare_scopes_should_honour_explicit_table_override(
 
 
 # ── 5. Diff semantics ───────────────────────────────────────────────────
+
 
 async def test_compare_scopes_should_populate_only_in_a_with_records_missing_from_b(
     fake_client,
@@ -187,7 +208,10 @@ async def test_compare_scopes_should_populate_only_in_a_with_records_missing_fro
     _stub_two_scopes(fake_client)
     # All script includes the FakeClient knows about for both scopes:
     fake_client.list_responses["sys_script_include"] = [
-        _SI_ONLY_A, _SI_SHARED_IN_A, _SI_ONLY_B, _SI_SHARED_IN_B,
+        _SI_ONLY_A,
+        _SI_SHARED_IN_A,
+        _SI_ONLY_B,
+        _SI_SHARED_IN_B,
     ]
 
     # Act
@@ -212,7 +236,10 @@ async def test_compare_scopes_should_populate_only_in_b_with_records_missing_fro
 
     _stub_two_scopes(fake_client)
     fake_client.list_responses["sys_script_include"] = [
-        _SI_ONLY_A, _SI_SHARED_IN_A, _SI_ONLY_B, _SI_SHARED_IN_B,
+        _SI_ONLY_A,
+        _SI_SHARED_IN_A,
+        _SI_ONLY_B,
+        _SI_SHARED_IN_B,
     ]
 
     # Act
@@ -241,7 +268,10 @@ async def test_compare_scopes_should_populate_in_both_with_shared_identity_value
 
     _stub_two_scopes(fake_client)
     fake_client.list_responses["sys_script_include"] = [
-        _SI_ONLY_A, _SI_SHARED_IN_A, _SI_ONLY_B, _SI_SHARED_IN_B,
+        _SI_ONLY_A,
+        _SI_SHARED_IN_A,
+        _SI_ONLY_B,
+        _SI_SHARED_IN_B,
     ]
 
     # Act
@@ -252,15 +282,14 @@ async def test_compare_scopes_should_populate_in_both_with_shared_identity_value
     in_both = parsed.get("in_both") or []
     # in_both can be reported as bare identity values OR as record dicts —
     # accept either shape (this is a contract decision deferred to GREEN).
-    in_both_identities = {
-        (r.get("name") if isinstance(r, dict) else r) for r in in_both
-    }
+    in_both_identities = {(r.get("name") if isinstance(r, dict) else r) for r in in_both}
     assert "SharedUtils" in in_both_identities, (
         f"SharedUtils exists in both scopes — expected in in_both, got: {in_both!r}"
     )
 
 
 # ── 6. Echo scope names ─────────────────────────────────────────────────
+
 
 async def test_compare_scopes_should_echo_both_scope_names_in_response(
     fake_client,
@@ -283,6 +312,7 @@ async def test_compare_scopes_should_echo_both_scope_names_in_response(
 
 
 # ── 7. Error wrapping ───────────────────────────────────────────────────
+
 
 async def test_compare_scopes_should_wrap_client_errors_in_tool_error(
     fake_client,

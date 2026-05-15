@@ -16,7 +16,7 @@ import os
 
 # package name → tools/<module>.py
 PACKAGES: dict[str, str] = {
-    "core": "table",           # Generic Table API — the foundational layer
+    "core": "table",  # Generic Table API — the foundational layer
     "itsm": "incident",
     "scripts": "script",
     "catalog": "catalog",

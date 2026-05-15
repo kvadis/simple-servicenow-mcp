@@ -64,9 +64,7 @@ class InstanceRegistry:
         try:
             return self.clients[name]
         except KeyError as e:
-            raise KeyError(
-                f"Unknown instance '{name}'. Available: {sorted(self.clients)}"
-            ) from e
+            raise KeyError(f"Unknown instance '{name}'. Available: {sorted(self.clients)}") from e
 
     def names(self) -> list[str]:
         return sorted(self.clients)
@@ -101,18 +99,14 @@ def load_instances(path: Path, fallback: Settings) -> InstanceRegistry:
     """
     raw = json.loads(Path(path).read_text())
     if not isinstance(raw, dict) or "instances" not in raw:
-        raise ValueError(
-            f"{path}: must be a JSON object with an 'instances' map"
-        )
+        raise ValueError(f"{path}: must be a JSON object with an 'instances' map")
     entries: dict[str, dict[str, Any]] = raw["instances"]
     if not entries:
         raise ValueError(f"{path}: 'instances' must not be empty")
 
     default_name = raw.get("default") or next(iter(entries))
     if default_name not in entries:
-        raise ValueError(
-            f"{path}: default '{default_name}' is not in instances {list(entries)}"
-        )
+        raise ValueError(f"{path}: default '{default_name}' is not in instances {list(entries)}")
 
     clients: dict[str, ServiceNowClient] = {}
     for name, overrides in entries.items():

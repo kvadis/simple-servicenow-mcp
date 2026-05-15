@@ -35,20 +35,24 @@ def _scan(record: dict[str, Any]) -> list[dict[str, Any]]:
     for match in _HEX32.findall(script):
         if match == sys_id:
             continue
-        findings.append({
-            "type": "hardcoded_sys_id",
-            "sys_id": sys_id,
-            "name": name,
-            "evidence": match,
-        })
+        findings.append(
+            {
+                "type": "hardcoded_sys_id",
+                "sys_id": sys_id,
+                "name": name,
+                "evidence": match,
+            }
+        )
 
     if _GS_PRINT in script:
-        findings.append({
-            "type": "deprecated_api",
-            "sys_id": sys_id,
-            "name": name,
-            "evidence": _GS_PRINT,
-        })
+        findings.append(
+            {
+                "type": "deprecated_api",
+                "sys_id": sys_id,
+                "name": name,
+                "evidence": _GS_PRINT,
+            }
+        )
 
     return findings
 
@@ -87,21 +91,25 @@ async def audit_scope(
         scope_sys_id = scope_rows[0]["sys_id"]
 
         query = f"sys_scope={scope_sys_id}"
-        results = await asyncio.gather(*(
-            client.list_records(table, query=query, fields=_SCRIPT_FIELDS, limit=_SCRIPT_LIMIT)
-            for table in _SCRIPT_TABLES
-        ))
+        results = await asyncio.gather(
+            *(
+                client.list_records(table, query=query, fields=_SCRIPT_FIELDS, limit=_SCRIPT_LIMIT)
+                for table in _SCRIPT_TABLES
+            )
+        )
         records = [r for batch in results for r in batch]
 
         findings: list[dict[str, Any]] = []
         for record in records:
             findings.extend(_scan(record))
 
-        return json.dumps({
-            "scope": scope,
-            "records_audited": len(records),
-            "findings": findings,
-        })
+        return json.dumps(
+            {
+                "scope": scope,
+                "records_audited": len(records),
+                "findings": findings,
+            }
+        )
     except ToolError:
         raise
     except Exception as e:

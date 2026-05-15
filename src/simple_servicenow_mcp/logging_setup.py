@@ -14,12 +14,33 @@ import logging
 import sys
 from typing import Any
 
-_LOGRECORD_RESERVED = frozenset({
-    "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
-    "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
-    "created", "msecs", "relativeCreated", "thread", "threadName",
-    "processName", "process", "message", "asctime", "taskName",
-})
+_LOGRECORD_RESERVED = frozenset(
+    {
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "message",
+        "asctime",
+        "taskName",
+    }
+)
 
 
 class _JsonFormatter(logging.Formatter):
@@ -56,8 +77,9 @@ def setup_logging(level: str = "INFO", fmt: str = "text") -> None:
         handler.setFormatter(_JsonFormatter())
     else:
         handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)-7s %(name)s | %(message)s",
-                              datefmt="%H:%M:%S")
+            logging.Formatter(
+                "%(asctime)s %(levelname)-7s %(name)s | %(message)s", datefmt="%H:%M:%S"
+            )
         )
     pkg_logger.addHandler(handler)
     pkg_logger.setLevel(level.upper())

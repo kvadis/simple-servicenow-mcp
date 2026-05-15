@@ -116,9 +116,7 @@ async def list_ci_relationships(
         instance: Named instance from SN_INSTANCES_FILE; omit for the default.
     """
     if direction not in {"outgoing", "incoming", "both"}:
-        raise ToolError(
-            f"direction must be 'outgoing', 'incoming', or 'both' (got {direction!r})"
-        )
+        raise ToolError(f"direction must be 'outgoing', 'incoming', or 'both' (got {direction!r})")
     client = _client(ctx, instance)
     outgoing: list[dict[str, Any]] = []
     incoming: list[dict[str, Any]] = []

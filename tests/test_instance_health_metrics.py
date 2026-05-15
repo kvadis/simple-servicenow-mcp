@@ -21,7 +21,6 @@ import json
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-
 # ── Encoded-query strings exactly as the prompt specifies them ──────────
 
 _Q_ACTIVE = "active=true"
@@ -31,7 +30,9 @@ _Q_INFLIGHT_CHG = "active=true^state!=3^state!=7"
 _Q_BUILD_NAME = "name=glide.product.build_name"
 
 
-def _stub_healthy_instance(fake_client, active=0, p1=0, in_flight=0, unassigned=None, version="Yokohama"):
+def _stub_healthy_instance(
+    fake_client, active=0, p1=0, in_flight=0, unassigned=None, version="Yokohama"
+):
     """Helper to lay down a complete, valid stub set for the 5 health calls."""
     fake_client.count_responses[("incident", _Q_ACTIVE)] = active
     fake_client.count_responses[("incident", _Q_ACTIVE_P1)] = p1
@@ -43,6 +44,7 @@ def _stub_healthy_instance(fake_client, active=0, p1=0, in_flight=0, unassigned=
 
 
 # ── 1. Module/tool existence ────────────────────────────────────────────
+
 
 def test_instance_health_metrics_tool_should_exist_in_health_module() -> None:
     """instance_health_metrics must be importable from tools.health — not implemented yet."""
@@ -57,13 +59,16 @@ def test_instance_health_metrics_tool_should_exist_in_health_module() -> None:
 
 # ── 2-3. Incident counts ────────────────────────────────────────────────
 
+
 async def test_instance_health_metrics_should_count_active_incidents(
     fake_client,
     fake_ctx,
 ) -> None:
     """Calls get_count on incident with `active=true` and returns the value as `active_incidents`."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     _stub_healthy_instance(fake_client, active=142)
 
@@ -85,7 +90,9 @@ async def test_instance_health_metrics_should_count_p1_incidents(
 ) -> None:
     """Separate get_count call for P1s with the priority=1 clause."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     _stub_healthy_instance(fake_client, active=10, p1=3)
 
@@ -103,6 +110,7 @@ async def test_instance_health_metrics_should_count_p1_incidents(
 
 # ── 4. Unassigned incidents list ────────────────────────────────────────
 
+
 async def test_instance_health_metrics_should_list_top_unassigned_incidents(
     fake_client,
     fake_ctx,
@@ -110,7 +118,9 @@ async def test_instance_health_metrics_should_list_top_unassigned_incidents(
     """Pulls the 5 newest unassigned active incidents and surfaces them as
     `unassigned_incidents`. Matches the prompt's limit=5 contract (prompts.py:206)."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     unassigned_rows = [
         {"number": f"INC001023{i}", "short_description": f"thing {i}", "priority": "3"}
@@ -133,13 +143,16 @@ async def test_instance_health_metrics_should_list_top_unassigned_incidents(
 
 # ── 5. Change request count ─────────────────────────────────────────────
 
+
 async def test_instance_health_metrics_should_count_in_flight_change_requests(
     fake_client,
     fake_ctx,
 ) -> None:
     """Counts active change_requests excluding Closed (3) and Cancelled (7)."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     _stub_healthy_instance(fake_client, in_flight=17)
 
@@ -149,12 +162,15 @@ async def test_instance_health_metrics_should_count_in_flight_change_requests(
     # Assert
     parsed = json.loads(result)
     assert parsed.get("in_flight_changes") == 17
-    chg_calls = [c for c in fake_client.calls if c.method == "count" and c.table == "change_request"]
+    chg_calls = [
+        c for c in fake_client.calls if c.method == "count" and c.table == "change_request"
+    ]
     assert chg_calls, "expected at least one count call against change_request"
     assert chg_calls[0].kwargs.get("query") == _Q_INFLIGHT_CHG
 
 
 # ── 6. Instance version ─────────────────────────────────────────────────
+
 
 async def test_instance_health_metrics_should_read_instance_version_from_sys_properties(
     fake_client,
@@ -162,7 +178,9 @@ async def test_instance_health_metrics_should_read_instance_version_from_sys_pro
 ) -> None:
     """Reads `glide.product.build_name` from sys_properties and surfaces the value."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     _stub_healthy_instance(fake_client, version="Yokohama Patch 3")
 
@@ -173,12 +191,15 @@ async def test_instance_health_metrics_should_read_instance_version_from_sys_pro
     parsed = json.loads(result)
     assert parsed.get("instance_version") == "Yokohama Patch 3"
 
-    prop_calls = [c for c in fake_client.calls if c.method == "list" and c.table == "sys_properties"]
+    prop_calls = [
+        c for c in fake_client.calls if c.method == "list" and c.table == "sys_properties"
+    ]
     assert len(prop_calls) == 1
     assert prop_calls[0].kwargs.get("query") == _Q_BUILD_NAME
 
 
 # ── 7. Warning rules ────────────────────────────────────────────────────
+
 
 async def test_instance_health_metrics_should_emit_warning_when_p1_count_is_nonzero(
     fake_client,
@@ -190,7 +211,9 @@ async def test_instance_health_metrics_should_emit_warning_when_p1_count_is_nonz
     `warnings` list with a typed entry so callers can filter/sort.
     """
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     _stub_healthy_instance(fake_client, active=20, p1=2)
 
@@ -201,9 +224,7 @@ async def test_instance_health_metrics_should_emit_warning_when_p1_count_is_nonz
     parsed = json.loads(result)
     warnings = parsed.get("warnings", [])
     matching = [w for w in warnings if w.get("type") == "active_p1_incidents"]
-    assert matching, (
-        f"expected an active_p1_incidents warning when P1 count > 0, got: {warnings!r}"
-    )
+    assert matching, f"expected an active_p1_incidents warning when P1 count > 0, got: {warnings!r}"
 
 
 async def test_instance_health_metrics_should_not_emit_p1_warning_when_p1_count_is_zero(
@@ -213,7 +234,9 @@ async def test_instance_health_metrics_should_not_emit_p1_warning_when_p1_count_
     """Healthy state: no P1s in flight → no P1 warning. Lock this in so the
     detector doesn't fire on false positives."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     _stub_healthy_instance(fake_client, active=20, p1=0)
 
@@ -224,12 +247,11 @@ async def test_instance_health_metrics_should_not_emit_p1_warning_when_p1_count_
     parsed = json.loads(result)
     warnings = parsed.get("warnings", [])
     matching = [w for w in warnings if w.get("type") == "active_p1_incidents"]
-    assert not matching, (
-        f"P1 warning must not fire when p1 count is 0, got: {warnings!r}"
-    )
+    assert not matching, f"P1 warning must not fire when p1 count is 0, got: {warnings!r}"
 
 
 # ── 8. Error wrapping ───────────────────────────────────────────────────
+
 
 async def test_instance_health_metrics_should_wrap_client_errors_in_tool_error(
     fake_client,
@@ -237,7 +259,9 @@ async def test_instance_health_metrics_should_wrap_client_errors_in_tool_error(
 ) -> None:
     """Underlying client failures mid-collection must surface as ToolError."""
     # Arrange
-    from simple_servicenow_mcp.tools.health import instance_health_metrics  # type: ignore[attr-defined]
+    from simple_servicenow_mcp.tools.health import (
+        instance_health_metrics,  # type: ignore[attr-defined]
+    )
 
     fake_client.raise_on_count["incident"] = RuntimeError("network down")
 
