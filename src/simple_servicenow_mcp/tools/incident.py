@@ -5,6 +5,7 @@ Returns native types so FastMCP emits structuredContent.
 
 from __future__ import annotations
 
+import json
 from typing import Any, Literal
 
 from mcp.server.fastmcp import Context
@@ -166,3 +167,67 @@ async def resolve_incident(
         )
     except Exception as e:
         raise ToolError(str(e)) from e
+
+
+@mcp.tool(annotations=_a.READ)
+async def triage_incident(
+    number: str,
+    ctx: Context,
+    instance: str | None = None,
+) -> str:
+    """Assemble a full triage bundle for an incident: record, journal, similar resolved.
+
+    Programmatic counterpart to the ``triage_incident`` prompt — one tool call
+    returns ``{incident, journal, similar_incidents}`` as a JSON string.
+
+    Args:
+        number: Incident display number (e.g. ``INC0010234``).
+        instance: Named instance from SN_INSTANCES_FILE; omit for the default.
+
+    Returns:
+        JSON string with ``incident`` (dict), ``journal`` (list), and
+        ``similar_incidents`` (list). On unknown number returns
+        ``{"error": "<msg>"}`` rather than raising.
+    """
+    client = _client(ctx, instance)
+    try:
+        matches = await client.list_records(
+            "incident",
+            query=f"number={number}",
+            fields=_INCIDENT_FIELDS,
+            limit=1,
+        )
+        if not matches:
+            return json.dumps({"error": f"incident not found: {number}"})
+        incident = matches[0]
+        sys_id = incident.get("sys_id", "")
+
+        journal = await client.list_records(
+            "sys_journal_field",
+            query=f"element_id={sys_id}^elementINwork_notes,comments",
+            limit=50,
+        )
+
+        words = (incident.get("short_description") or "").split()
+        like_clause = "^OR".join(f"short_descriptionLIKE{w}" for w in words)
+        similar_query = "stateIN6,7"
+        if like_clause:
+            similar_query = f"{similar_query}^{like_clause}"
+        similar = await client.list_records(
+            "incident",
+            query=similar_query,
+            fields=_INCIDENT_FIELDS,
+            limit=5,
+        )
+
+        return json.dumps(
+            {
+                "incident": incident,
+                "journal": journal,
+                "similar_incidents": similar,
+            }
+        )
+    except ToolError:
+        raise
+    except Exception as e:
+        raise ToolError(f"triage_incident failed: {e}") from e

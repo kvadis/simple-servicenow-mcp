@@ -36,7 +36,7 @@ Focused on **analytical intelligence** for developers and consultants, not just 
 
 ## Highlights
 
-- **40 tools** across 9 domain modules
+- **40 tools** across 9 domain modules (24 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
 - **9 prompts** orchestrating multi-step analytical workflows
 - **4 resources** for instance metadata, health, schema, and scope
 - **Schema-aware writes** — `create_record` / `update_record` validate field names against `sys_dictionary` (walks inheritance) and surface typos locally instead of opaque `400`s
@@ -44,7 +44,7 @@ Focused on **analytical intelligence** for developers and consultants, not just 
 - **Multi-instance** — point at prod / dev / test with a single server, switch via `instance="dev"` per call
 - **Three transports** — stdio (default), Streamable HTTP, SSE
 - **Safety rails** — `--read-only` refuses all mutations; `delete_*` returns a preview unless `confirm=true`
-- **Tool-package gating** — `SN_TOOL_PACKAGES=core,itsm,cmdb` keeps the LLM's tool list compact for narrow use cases
+- **Tool-package gating** — unset loads a curated 24-tool default (`core, itsm, scripts, catalog, audit`); set `SN_TOOL_PACKAGES=all` for everything or pin a custom subset (e.g. `core,itsm,cmdb`)
 - **Production hygiene** — retry-after-aware retries on 429/5xx, OAuth token caching, structured JSON logging, MCP annotations on every tool
 
 ---
