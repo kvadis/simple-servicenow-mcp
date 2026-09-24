@@ -25,7 +25,6 @@ from simple_servicenow_mcp.server import AppContext
 # CI, so we auto-skip them unless ``--run-wip`` is passed.
 
 _WIP_TEST_FILES = {
-    "test_audit_acls.py",
     "test_compare_scopes.py",
     "test_find_orphaned_records.py",
     "test_instance_health_metrics.py",

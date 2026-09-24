@@ -36,7 +36,7 @@ Focused on **analytical intelligence** for developers and consultants, not just 
 
 ## Highlights
 
-- **40 tools** across 9 domain modules (24 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
+- **42 tools** across 9 domain modules (26 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
 - **9 prompts** orchestrating multi-step analytical workflows
 - **4 resources** for instance metadata, health, schema, and scope
 - **Schema-aware writes** — `create_record` / `update_record` validate field names against `sys_dictionary` (walks inheritance) and surface typos locally instead of opaque `400`s
@@ -296,6 +296,7 @@ Every tool accepts an optional `instance: str | None = None` parameter (selects 
 | Tool | Args | Annotation | Returns |
 | --- | --- | --- | --- |
 | `audit_scope` | `scope` | read | Scope audit findings (hardcoded sys_ids, deprecated APIs in scripts) |
+| `audit_acls` | `scope` | read | Tables in a scope with no ACLs of their own — `blocking` when nothing protects them, `warning` when a parent table's ACLs apply |
 
 ---
 
@@ -338,11 +339,11 @@ Prompts orchestrate multi-step analytical workflows. They emit a structured user
 
 **2. Pre-promotion update-set audit**
 
-`SN_TOOL_PACKAGES=core,scripts,update_set,audit` (20 tools) + prompts: `update_set_review`, `audit_scope`, `upgrade_readiness_review`.
+`SN_TOOL_PACKAGES=core,scripts,update_set,audit` (21 tools) + prompts: `update_set_review`, `audit_scope`, `upgrade_readiness_review`.
 
 **3. SRE blast-radius analysis**
 
-`SN_TOOL_PACKAGES=core,itsm,cmdb,knowledge,attachment` (25 tools) + prompts: `trace_incident_impact`, `triage_incident`.
+`SN_TOOL_PACKAGES=core,itsm,cmdb,knowledge,attachment` (26 tools) + prompts: `trace_incident_impact`, `triage_incident`.
 
 **4. Catalog UX review**
 
