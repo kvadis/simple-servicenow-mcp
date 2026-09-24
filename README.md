@@ -36,7 +36,7 @@ Focused on **analytical intelligence** for developers and consultants, not just 
 
 ## Highlights
 
-- **42 tools** across 9 domain modules (26 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
+- **43 tools** across 9 domain modules (27 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
 - **9 prompts** orchestrating multi-step analytical workflows
 - **4 resources** for instance metadata, health, schema, and scope
 - **Schema-aware writes** — `create_record` / `update_record` validate field names against `sys_dictionary` (walks inheritance) and surface typos locally instead of opaque `400`s
@@ -297,6 +297,7 @@ Every tool accepts an optional `instance: str | None = None` parameter (selects 
 | --- | --- | --- | --- |
 | `audit_scope` | `scope` | read | Scope audit findings (hardcoded sys_ids, deprecated APIs in scripts) |
 | `audit_acls` | `scope` | read | Tables in a scope with no ACLs of their own — `blocking` when nothing protects them, `warning` when a parent table's ACLs apply |
+| `upgrade_readiness_review` | `scope`, `target_version?` | read | Severity-graded scan (blocking / risk / info) of business rules, script includes, client scripts, scripted UI policies and UI actions, with line numbers and a red/yellow/green verdict |
 
 ---
 
@@ -339,7 +340,7 @@ Prompts orchestrate multi-step analytical workflows. They emit a structured user
 
 **2. Pre-promotion update-set audit**
 
-`SN_TOOL_PACKAGES=core,scripts,update_set,audit` (21 tools) + prompts: `update_set_review`, `audit_scope`, `upgrade_readiness_review`.
+`SN_TOOL_PACKAGES=core,scripts,update_set,audit` (22 tools) + prompts: `update_set_review`, `audit_scope`, `upgrade_readiness_review`.
 
 **3. SRE blast-radius analysis**
 

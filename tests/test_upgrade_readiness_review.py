@@ -173,9 +173,14 @@ async def test_upgrade_readiness_review_should_skip_ui_policies_without_script(
     fake_client,
     fake_ctx,
 ) -> None:
-    """UI policies and UI actions only audit records where `script` is non-empty
-    (per prompts.py:111-112). Otherwise we audit thousands of OOTB rule-only
-    records with nothing to grep."""
+    """UI policies and UI actions only audit records that actually carry script.
+    Otherwise we audit thousands of OOTB rule-only records with nothing to grep.
+
+    sys_ui_action has a ``script`` column, so ``scriptISNOTEMPTY`` works there.
+    sys_ui_policy does not: its scripts live in ``script_true`` / ``script_false``,
+    and both hold ``function onCondition() {}`` boilerplate even when scripting
+    is off — so the discriminating filter is ``run_scripts=true``.
+    """
     # Arrange
     from simple_servicenow_mcp.tools.audit import (
         upgrade_readiness_review,  # type: ignore[attr-defined]
@@ -187,13 +192,12 @@ async def test_upgrade_readiness_review_should_skip_ui_policies_without_script(
     await upgrade_readiness_review("x_co_app", fake_ctx)
 
     # Assert
-    for table in ("sys_ui_policy", "sys_ui_action"):
+    expected_filter = {"sys_ui_policy": "run_scripts=true", "sys_ui_action": "scriptISNOTEMPTY"}
+    for table, needle in expected_filter.items():
         calls = [c for c in fake_client.calls if c.table == table]
         assert calls
         query = calls[0].kwargs.get("query") or ""
-        assert "scriptISNOTEMPTY" in query, (
-            f"{table} query must include scriptISNOTEMPTY filter, got: {query!r}"
-        )
+        assert needle in query, f"{table} query must include {needle}, got: {query!r}"
 
 
 # ── 6-8. Severity-graded detectors ──────────────────────────────────────

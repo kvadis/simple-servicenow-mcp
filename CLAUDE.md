@@ -18,7 +18,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Capability tally
 
-- **42 tools** across 9 domain modules (26 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
+- **43 tools** across 9 domain modules (27 enabled by default; rest opt-in via `SN_TOOL_PACKAGES`)
 - **9 prompts** orchestrating multi-step analytical workflows
 - **4 MCP resources**
 
@@ -59,7 +59,7 @@ python -m build                                        # Build wheel + sdist int
 | `SN_LOG_LEVEL` / `SN_LOG_FORMAT` | `INFO` / `text` (or `DEBUG`+`json`) |
 | `SN_INSTANCES_FILE` | Path to `instances.json` — enables multi-instance mode |
 | `SN_READ_ONLY` | `true` to refuse mutations (CLI: `--read-only`) |
-| `SN_TOOL_PACKAGES` | Comma-separated subset of tool modules to load. Unset → curated default (`core,itsm,scripts,catalog,audit`, 26 tools). `all` → every module (42 tools). |
+| `SN_TOOL_PACKAGES` | Comma-separated subset of tool modules to load. Unset → curated default (`core,itsm,scripts,catalog,audit`, 27 tools). `all` → every module (43 tools). |
 
 See `.env.example` for the canonical list. **Common gotcha:** `SN_API_TIMEOUT` is in seconds — `30000` would be 8.3 hours.
 
@@ -93,6 +93,7 @@ src/simple_servicenow_mcp/
     update_set.py   # sys_update_set: list, get + count, list_changes, summarize w/ risk flags
     audit.py        # audit_scope — hardcoded sys_ids + deprecated APIs in scripts
                     # audit_acls — tables in a scope with zero record/field ACLs
+                    # upgrade_readiness_review — severity-graded scan of 5 script tables
   resources.py      # MCP resources: instance/info, health, schema/{table}, scope/{name}
   prompts.py        # MCP prompts (9 total) — see "Prompts" below
 tests/
@@ -172,12 +173,11 @@ tests/
 
 ### WIP test gating (CI-friendly TDD)
 
-Four test files cover features not yet implemented and are red-state by design:
+Three test files cover features not yet implemented and are red-state by design:
 
 - `test_compare_scopes.py`
 - `test_find_orphaned_records.py`
 - `test_instance_health_metrics.py`
-- `test_upgrade_readiness_review.py`
 
 `pytest -q` skips them (CI default). `pytest -q --run-wip` includes them — that's how the implementing developer sees their work signal. Gating logic is in `tests/conftest.py::pytest_collection_modifyitems`; the file list is `_WIP_TEST_FILES`. When a feature lands, remove its file from that set (or it'll just pass and the skip is silently moot — either works).
 
