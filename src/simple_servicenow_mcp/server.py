@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -52,7 +53,8 @@ class AppContext:
         if self.settings.read_only:
             raise ToolError(
                 f"refused: server is running in read-only mode (operation: {op}). "
-                "Restart without --read-only / SN_READ_ONLY to allow mutations."
+                "Read-only is the default; restart with --read-write or "
+                "SN_READ_ONLY=false to allow mutations."
             )
 
 
@@ -153,19 +155,28 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=8000,
         help="HTTP bind port (only used with --transport=http|sse)",
     )
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--read-only",
         action="store_true",
         help="Refuse all mutating tool calls (create/update/delete/comment/resolve). "
-        "Equivalent to SN_READ_ONLY=true.",
+        "This is the default; the flag exists to override SN_READ_ONLY=false.",
+    )
+    mode.add_argument(
+        "--read-write",
+        action="store_true",
+        help="Allow mutating tool calls. Equivalent to SN_READ_ONLY=false.",
     )
     return parser.parse_args(argv)
 
 
+def _read_only_from_env() -> bool:
+    raw = os.environ.get("SN_READ_ONLY", "true").strip().lower()
+    return raw not in ("false", "0", "no", "off", "f", "n")
+
+
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point — runs the MCP server over stdio or HTTP."""
-    import os
-
     # Auth subcommands are dispatched before argparse: the server's parser has no
     # subparsers and would reject a bare `login`. Keeping one console script means
     # the same launch command — and the cwd it sets up for .env — works for both.
@@ -177,9 +188,11 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(auth_main(argv))
 
     args = _parse_args(argv)
-    if args.read_only:
+    if args.read_write:
+        os.environ["SN_READ_ONLY"] = "false"
+    elif args.read_only:
         os.environ["SN_READ_ONLY"] = "true"
-    mode = "read-only" if args.read_only else "read-write"
+    mode = "read-only" if _read_only_from_env() else "read-write"
     print(
         f"simple-servicenow-mcp starting on {args.transport} ({mode})…",
         file=sys.stderr,

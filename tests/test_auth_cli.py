@@ -302,3 +302,19 @@ def test_login_binds_the_listener_before_opening_the_browser(env, monkeypatch, c
     assert auth_cli.main(["login", "--timeout", "0.2"]) == 1  # times out, as intended
     assert seen["listening"] is True
     assert "timed out" in capsys.readouterr().err
+
+
+# ── logging ─────────────────────────────────────────────────────────
+
+
+def test_auth_cli_quiets_library_loggers(env, capsys):
+    """Importing the server lets FastMCP log every httpx request at INFO through a
+    Rich root handler; the CLI must not print that under its own prompts."""
+    import logging
+
+    logging.getLogger("httpx").setLevel(logging.INFO)
+
+    auth_cli.main(["auth-status"])
+
+    assert logging.getLogger("httpx").level == logging.WARNING
+    assert logging.getLogger("simple_servicenow_mcp").propagate is False

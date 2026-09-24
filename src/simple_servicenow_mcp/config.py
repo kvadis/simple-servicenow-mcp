@@ -40,8 +40,8 @@ class Settings(BaseSettings):
 
     # Safety
     read_only: bool = Field(
-        default=False,
-        description="When True, any tool that mutates ServiceNow (create/update/delete/comment/resolve) refuses the call with a clear error. Set via env SN_READ_ONLY=true or CLI --read-only.",
+        default=True,
+        description="When True (the default), any tool that mutates ServiceNow (create/update/delete/comment/resolve) refuses the call with a clear error. Opt into writes with SN_READ_ONLY=false or the CLI flag --read-write.",
     )
 
     # Basic auth

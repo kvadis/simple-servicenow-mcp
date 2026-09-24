@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 import webbrowser
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ from datetime import datetime, timezone
 from .client import ServiceNowAPIError, ServiceNowClient
 from .config import Settings
 from .instances import load_instance_settings
+from .logging_setup import setup_logging
 from .oauth import (
     CallbackResult,
     bind_redirect_listener,
@@ -303,6 +305,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Importing the server module lets FastMCP install its own (Rich, INFO)
+    # root handler, which would print every httpx request under the login
+    # prompt. Install the package handler instead, which also quiets httpx/mcp.
+    setup_logging(level=os.environ.get("SN_LOG_LEVEL", "WARNING"))
     args = build_parser().parse_args(argv)
     result: int = args.func(args)
     return result

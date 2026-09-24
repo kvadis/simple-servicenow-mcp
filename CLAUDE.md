@@ -30,7 +30,7 @@ pre-commit install                                     # Install git hooks (form
 simple-servicenow-mcp                                  # Stdio (default — for Claude Desktop, Cursor, VS Code)
 simple-servicenow-mcp --transport http --port 8000     # Streamable HTTP (remote/multi-client)
 simple-servicenow-mcp --transport sse                  # SSE (legacy transport)
-simple-servicenow-mcp --read-only                      # Refuse all mutations (gated by AppContext.ensure_writable)
+simple-servicenow-mcp --read-write                     # Allow mutations (read-only is the default; gated by AppContext.ensure_writable)
 simple-servicenow-mcp login [--instance NAME] [--paste]  # Browser login for SN_AUTH_METHOD=oauth_authorization_code
 simple-servicenow-mcp auth-status [--instance NAME]    # Stored token state + expiry
 simple-servicenow-mcp logout [--instance NAME] [--access-only]  # Drop tokens (--access-only keeps the refresh token)
@@ -58,7 +58,7 @@ python -m build                                        # Build wheel + sdist int
 | `SN_MAX_RETRIES` / `SN_RETRY_BASE_DELAY` / `SN_RETRY_MAX_DELAY` | Retry behaviour for 429/5xx/network |
 | `SN_LOG_LEVEL` / `SN_LOG_FORMAT` | `INFO` / `text` (or `DEBUG`+`json`) |
 | `SN_INSTANCES_FILE` | Path to `instances.json` — enables multi-instance mode |
-| `SN_READ_ONLY` | `true` to refuse mutations (CLI: `--read-only`) |
+| `SN_READ_ONLY` | Defaults to `true` (mutations refused). `false` allows writes (CLI: `--read-write`; `--read-only` forces it back on) |
 | `SN_TOOL_PACKAGES` | Comma-separated subset of tool modules to load. Unset → curated default (`core,itsm,scripts,catalog,audit`, 27 tools). `all` → every module (43 tools). |
 
 See `.env.example` for the canonical list. **Common gotcha:** `SN_API_TIMEOUT` is in seconds — `30000` would be 8.3 hours.

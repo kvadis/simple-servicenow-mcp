@@ -390,3 +390,32 @@ def test_parse_args_read_only_flag() -> None:
     assert args.read_only is True
     args = _parse_args([])
     assert args.read_only is False
+
+
+# ── read-only default ───────────────────────────────────────────────
+
+
+def test_settings_default_to_read_only() -> None:
+    s = Settings(instance_url="https://x.service-now.com", username="u", password="p")  # type: ignore[call-arg]
+    assert s.read_only is True
+
+
+def test_parse_args_read_write_flag() -> None:
+    assert _parse_args(["--read-write"]).read_write is True
+    assert _parse_args([]).read_write is False
+
+
+def test_parse_args_rejects_read_only_with_read_write() -> None:
+    with pytest.raises(SystemExit):
+        _parse_args(["--read-only", "--read-write"])
+
+
+def test_read_only_from_env_defaults_true(monkeypatch) -> None:
+    from simple_servicenow_mcp.server import _read_only_from_env
+
+    monkeypatch.delenv("SN_READ_ONLY", raising=False)
+    assert _read_only_from_env() is True
+    monkeypatch.setenv("SN_READ_ONLY", "false")
+    assert _read_only_from_env() is False
+    monkeypatch.setenv("SN_READ_ONLY", "0")
+    assert _read_only_from_env() is False

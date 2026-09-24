@@ -43,7 +43,7 @@ Focused on **analytical intelligence** for developers and consultants, not just 
 - **Structured output** — every tool returns native types; clients see typed `structuredContent` alongside text
 - **Multi-instance** — point at prod / dev / test with a single server, switch via `instance="dev"` per call
 - **Three transports** — stdio (default), Streamable HTTP, SSE
-- **Safety rails** — `--read-only` refuses all mutations; `delete_*` returns a preview unless `confirm=true`
+- **Safety rails** — read-only by default (`--read-write` / `SN_READ_ONLY=false` to opt in); `delete_*` returns a preview unless `confirm=true`
 - **Tool-package gating** — unset loads a curated 24-tool default (`core, itsm, scripts, catalog, audit`); set `SN_TOOL_PACKAGES=all` for everything or pin a custom subset (e.g. `core,itsm,cmdb`)
 - **Production hygiene** — retry-after-aware retries on 429/5xx, OAuth token caching, structured JSON logging, MCP annotations on every tool
 
@@ -162,7 +162,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 }
 ```
 
-For production / shared instances, append `--read-only` to the args.
+The server starts read-only. To let the client create, update or delete records, add
+`"--read-write"` to the args (or `SN_READ_ONLY=false` to `env`).
 
 ### Cursor / VS Code / Claude Code
 
@@ -426,13 +427,17 @@ Unknown package names fail at startup with the valid list. Prompts and resources
 
 ## Read-only mode
 
-Refuse all mutating calls without changing your credential's grants:
+**Read-only is the default.** Every `create_*` / `update_*` / `delete_*` / `add_*_comment` /
+`resolve_*` / `upload_*` tool refuses until you opt into writes, so pointing the server at a
+production instance cannot change anything by accident. To allow mutations:
 
 ```bash
-simple-servicenow-mcp --read-only
+simple-servicenow-mcp --read-write
 # or
-SN_READ_ONLY=true simple-servicenow-mcp
+SN_READ_ONLY=false simple-servicenow-mcp
 ```
+
+`--read-only` still exists and overrides `SN_READ_ONLY=false` for one run.
 
 Any `create_*` / `update_*` / `delete_*` / `add_*_comment` / `resolve_*` / `upload_*` tool will refuse with a clear `ToolError` before the request reaches ServiceNow. Reads keep working unchanged. Use this when sharing an MCP with an AI agent that you don't fully trust to write.
 

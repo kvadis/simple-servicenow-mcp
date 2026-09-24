@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format is based
 - **First tests for the auth layer** — `_auth_headers` and `_refresh_oauth_token` previously had no coverage. 98 new tests across `test_token_store.py`, `test_oauth_pkce.py` (S256 known-answer from RFC 7636 Appendix B), `test_client_auth.py` (via `httpx.MockTransport`) and `test_auth_cli.py` (real loopback sockets).
 
 ### Changed
+- **Read-only by default.** `SN_READ_ONLY` now defaults to `true`; the 7 mutating tools refuse until the server is started with `--read-write` or `SN_READ_ONLY=false`. `--read-only` remains and overrides an env opt-in for one run. Pointing a fresh install at production can no longer change anything by accident.
+- **`login` / `logout` / `auth-status` are quiet.** The CLI installs the package log handler (default level WARNING, `SN_LOG_LEVEL` to change), so FastMCP's Rich root handler no longer prints every httpx request under the login prompt.
 - **`SN_TOOL_PACKAGES` default narrowed** from `all` (43 tools) to a curated subset — `core, itsm, scripts, catalog, audit` (27 tools, the "developer analytical" loop). Keeps the LLM's tool list compact out of the box; pass `SN_TOOL_PACKAGES=all` to opt back into every module, or pin a custom set. Domain-specific modules (`cmdb`, `knowledge`, `attachment`, `update_set`) are now opt-in.
 
 ### Added
