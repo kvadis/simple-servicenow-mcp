@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "simple-servicenow-mcp"
-version = "0.2.1"
+version = "0.2.2"
 description = "ServiceNow MCP Server — analytical intelligence over ServiceNow instances (audits, schema discovery, catalog UX, instance health)"
 readme = "README.md"
 license = { file = "LICENSE" }
