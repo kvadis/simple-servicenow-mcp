@@ -17,9 +17,14 @@ from . import _annotations as _a
 _BR_FIELDS = "sys_id,name,collection,when,order,active,script,sys_scope,description"
 _SI_FIELDS = "sys_id,name,api_name,client_callable,active,script,sys_scope,description"
 _CS_FIELDS = "sys_id,name,table,type,ui_type,active,script,sys_scope,description"
-_UP_FIELDS = "sys_id,short_description,table,conditions,active,on_load,reverse_if_false,sys_scope"
+_UP_FIELDS = "sys_id,short_description,table,conditions,active,on_load,reverse_if_false,run_scripts,sys_scope"
 _UA_FIELDS = "sys_id,name,table,action_name,form_button,form_link,list_action,active,condition,script,sys_scope"
 _BODY_FIELDS = "sys_id,name,script,active,sys_scope"
+# sys_ui_policy has no ``script`` column: its code lives in script_true / script_false
+# (both hold ``function onCondition() {}`` boilerplate even when run_scripts is false).
+_BODY_FIELDS_BY_TABLE = {
+    "sys_ui_policy": "sys_id,short_description,run_scripts,script_true,script_false,active,sys_scope",
+}
 
 
 def _client(ctx: Context, instance: str | None) -> ServiceNowClient:
@@ -205,12 +210,16 @@ async def get_script_body(
 ) -> dict[str, Any]:
     """Get the full script body of a business rule, script include, client script, UI policy, or UI action.
 
+    UI policies return ``script_true`` / ``script_false`` (plus ``run_scripts``)
+    instead of ``script``; the other tables return ``script``.
+
     Args:
         table: Script table (sys_script, sys_script_include, sys_script_client, sys_ui_policy, sys_ui_action)
         sys_id: The sys_id of the script record
         instance: Named instance from SN_INSTANCES_FILE; omit for the default.
     """
     try:
-        return await _client(ctx, instance).get_record(table, sys_id, fields=_BODY_FIELDS)
+        fields = _BODY_FIELDS_BY_TABLE.get(table, _BODY_FIELDS)
+        return await _client(ctx, instance).get_record(table, sys_id, fields=fields)
     except Exception as e:
         raise ToolError(str(e)) from e

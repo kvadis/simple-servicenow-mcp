@@ -104,12 +104,16 @@ def upgrade_readiness_review(
 
 ## Discovery (gather every scripted artefact)
 
-Paginate each list call until exhausted. Use `verbose=false` to keep payloads tight.
+Start with the `upgrade_readiness_review` tool (`scope`, `target_version`): it returns a
+deterministic, line-numbered first pass with severity counts and a verdict. Then go deeper
+with the steps below. Paginate each list call until exhausted. Use `verbose=false` to keep
+payloads tight.
 
 1. `list_business_rules` with query `sys_scope.scope={scope}^active=true`
 2. `list_script_includes` with query `sys_scope.scope={scope}^active=true`
 3. `list_client_scripts` with query `sys_scope.scope={scope}^active=true`
-4. `list_ui_policies` with query `sys_scope.scope={scope}^active=true^scriptISNOTEMPTY`
+4. `list_ui_policies` with query `sys_scope.scope={scope}^active=true^run_scripts=true`
+   (UI policies keep their code in `script_true` / `script_false`, not `script`)
 5. `list_ui_actions` with query `sys_scope.scope={scope}^active=true^scriptISNOTEMPTY`
 6. For every record, call `get_script_body(table, sys_id)` to fetch the source.
 7. Optionally `describe_table(table)` if you need to confirm referenced column shapes.
@@ -119,11 +123,11 @@ Paginate each list call until exhausted. Use `verbose=false` to keep payloads ti
 **🔴 Blocking — must fix before upgrade**
 - Synchronous GlideRecord/AJAX: `getXMLWait()`, `getXML()` sync form, legacy `chooseWindow()`
 - Removed/legacy client APIs: direct `document.*` / `$j()` / `$$()` DOM access in client scripts
-- Hardcoded sys_ids that should be system-property lookups
 - Modifications to OOTB records (match against base names in `sys_metadata`)
 - Use of `gs.executeNow()` with deprecated signatures
 
 **🟠 Risk — review before upgrade**
+- Hardcoded sys_ids that should be system-property lookups (brittle across instances, not upgrade-breaking)
 - Missing try/catch around GlideRecord ops, REST calls, JSON.parse, scripted REST
 - Unbounded GlideRecord queries (no `setLimit()` and no precise filter)
 - Queries inside loops (N+1) or dot-walking across reference fields in tight loops
