@@ -8,6 +8,13 @@ All notable changes to this project will be documented here. The format is based
 
 Nothing yet.
 
+## [0.2.1] — 2026-09-24
+
+### Fixed
+- **`download_attachment` and `upload_attachment` failed on every call** with `got multiple values for keyword argument 'headers'`: the request loop passed its auth header and the Attachment API's per-call `Accept`/`Content-Type` as two separate keywords. Per-call headers now merge over the auth header. The tool tests used a fake client and never reached the request loop; new `httpx.MockTransport` tests (`tests/test_client_attachments.py`) cover it. Found by a live run of every tool against a PDI.
+- **`list_update_sets` returned nothing by default**: it filtered on `state=in_progress`, but the stored choice value is `in progress` (with a space). The docstring also listed a `released` state that doesn't exist; the states are `in progress`, `complete` and `ignore`.
+- **`audit_scope` still stopped at 100 scripts per table**, although 0.2.0 listed it as fixed: it asked for 200 rows in one call, and the client caps each call at 100. It now pages through every business rule and script include in the scope and reports `truncated` when the page cap is hit.
+
 ## [0.2.0] — 2026-09-24
 
 ### Added

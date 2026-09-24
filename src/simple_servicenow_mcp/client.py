@@ -398,11 +398,14 @@ class ServiceNowClient:
         # before, whatever the auth method.
         total_attempts = base_attempts + (0 if self._settings.auth_method == "basic" else 1)
         auth_retried = False
+        # Per-call headers (the Attachment API's Accept / Content-Type) merge over
+        # the auth header; passing both as keywords to httpx is a TypeError.
+        extra_headers = kwargs.pop("headers", None) or {}
         for attempt in range(total_attempts):
             max_attempts = base_attempts + (1 if auth_retried else 0)
             start = time.monotonic()
             try:
-                headers = await self._auth_headers()
+                headers = {**await self._auth_headers(), **extra_headers}
                 resp = await self._http.request(method, url, headers=headers, **kwargs)
             except (
                 httpx.ConnectError,

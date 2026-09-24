@@ -243,6 +243,25 @@ async def test_audit_scope_should_return_records_audited_count_matching_total_sc
     assert parsed.get("records_audited") == 3
 
 
+async def test_audit_scope_should_page_past_the_100_row_clamp(fake_client, fake_ctx) -> None:
+    """A scope with more than 100 business rules must be audited in full, and a
+    finding on the second page must still be reported."""
+    from simple_servicenow_mcp.tools.audit import audit_scope  # type: ignore[attr-defined]
+
+    fake_client.list_responses["sys_scope"] = [_SCOPE_RECORD]
+    fake_client.pages[("sys_script", 0)] = [
+        {**_BR_CLEAN, "sys_id": f"br{i:030d}"} for i in range(100)
+    ]
+    fake_client.pages[("sys_script", 100)] = [_BR_WITH_HARDCODED]
+    fake_client.list_responses["sys_script_include"] = [_SI_WITH_GS_PRINT]
+
+    parsed = json.loads(await audit_scope("x_co_app", fake_ctx))
+
+    assert parsed["records_audited"] == 102
+    assert parsed["truncated"] is False
+    assert _BR_WITH_HARDCODED["sys_id"] in {f["sys_id"] for f in parsed["findings"]}
+
+
 # ── 9. Scope identity in response (PDI-observed: scope records carry scope+name) ──
 
 

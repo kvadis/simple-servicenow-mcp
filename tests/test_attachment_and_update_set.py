@@ -276,6 +276,8 @@ class FakeUpdateSetClient:
 
 
 async def test_list_update_sets_defaults_to_in_progress() -> None:
+    """The stored choice value has a space (``in progress``); ``in_progress``
+    matches nothing, so the default call returned zero rows on a real instance."""
     from simple_servicenow_mcp.tools.update_set import list_update_sets
 
     client = FakeUpdateSetClient()
@@ -283,7 +285,7 @@ async def test_list_update_sets_defaults_to_in_progress() -> None:
 
     _, args, kwargs = client.calls[0]
     assert args == ("sys_update_set",)
-    assert kwargs["query"] == "state=in_progress"
+    assert kwargs["query"] == "state=in progress"
 
 
 async def test_get_update_set_returns_record_plus_change_count() -> None:

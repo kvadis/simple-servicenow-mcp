@@ -52,7 +52,7 @@ def _client(ctx: Context, instance: str | None) -> ServiceNowClient:
 @mcp.tool(annotations=_a.READ)
 async def list_update_sets(
     ctx: Context,
-    state: str | None = "in_progress",
+    state: str | None = "in progress",
     application: str | None = None,
     query: str | None = None,
     limit: int = 20,
@@ -61,12 +61,12 @@ async def list_update_sets(
 ) -> list[dict[str, Any]]:
     """List update sets from ``sys_update_set``.
 
-    Defaults to ``state=in_progress`` because that's the actionable set. Pass
+    Defaults to ``state=in progress`` because that's the actionable set. Pass
     ``state=None`` to widen, or e.g. ``state=complete`` for promotion candidates.
 
     Args:
-        state: Workflow state filter (``in_progress``, ``complete``,
-            ``released``, ``ignore``). ``None`` to skip.
+        state: Workflow state choice value: ``in progress`` (with a space),
+            ``complete``, or ``ignore``. ``None`` to skip.
         application: Filter by ``application`` sys_id or scope name (dot-walked).
         query: Extra encoded query
         limit: Max records (1-100, default 20)
