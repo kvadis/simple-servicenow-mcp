@@ -5,6 +5,7 @@ A Python [Model Context Protocol](https://modelcontextprotocol.io) server that w
 Focused on **analytical intelligence** for developers and consultants, not just CRUD — schema-aware operations, scope audits, catalog UX analysis, update-set risk review, knowledge-coverage gap detection, and cross-instance diff. The LLM can reason across records instead of paginating one table at a time.
 
 [![CI](https://github.com/kvadis/simple-servicenow-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/kvadis/simple-servicenow-mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/simple-servicenow-mcp)](https://pypi.org/project/simple-servicenow-mcp/)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/simple-servicenow-mcp/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-1.x-purple)](https://modelcontextprotocol.io)

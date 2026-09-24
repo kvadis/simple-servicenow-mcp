@@ -14,7 +14,7 @@ This file provides guidance to Claude Code when working with this repository.
 - Instance health checks and operational metrics
 
 **OSS repo:** https://github.com/kvadis/simple-servicenow-mcp (currently private)
-**Released:** v0.1.0 (commit `035f914`, CI-green on Python 3.10/3.11/3.12/3.13)
+**Released:** v0.2.0 (2026-09-24; read-only by default, PKCE login, audit_acls + upgrade_readiness_review). Published to PyPI by `publish.yml` on each GitHub release.
 
 ## Capability tally
 

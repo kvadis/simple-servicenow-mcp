@@ -6,6 +6,10 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] — 2026-09-24
+
 ### Added
 - **`upgrade_readiness_review` tool** (`tools/audit.py`) — the programmatic counterpart of the prompt. Pulls every active business rule, script include, client script, scripted UI policy (`run_scripts=true`, scanning `script_true`/`script_false`) and scripted UI action in a scope and grades findings `blocking` (`getXMLWait()`, DOM access in client-side code), `risk` (hardcoded sys_ids, `current.update()` in before/after rules) or `info` (`gs.log()`, `gs.print()`), each with field, line number, evidence and a recommendation. Reports `severity_counts`, a red/yellow/green `verdict`, and an explicit `out_of_scope` list; only detectors that cannot misfire are included.
 - **`audit_acls` tool** (`tools/audit.py`) — lists a scope's tables from `sys_db_object` and counts active record-type ACLs named `<table>` or `<table>.<field>` for each. Zero ACLs is reported as `no_acls`: `blocking` when the table extends nothing (only the wildcard `*` rules apply), `warning` when it inherits a parent table's ACLs (`inherits_from`). Pages past the 100-row clamp and reports `truncated`.
