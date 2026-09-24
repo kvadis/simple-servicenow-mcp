@@ -11,7 +11,7 @@ Thanks for considering a contribution! This project is small and pragmatic — p
 ## Development setup
 
 ```bash
-git clone https://github.com/kostya-kozachuk/simple-servicenow-mcp.git
+git clone https://github.com/kvadis/simple-servicenow-mcp.git
 cd simple-servicenow-mcp
 python -m venv .venv
 source .venv/bin/activate

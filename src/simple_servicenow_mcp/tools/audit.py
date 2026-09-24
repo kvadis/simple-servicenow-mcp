@@ -14,6 +14,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 from ..client import ServiceNowClient
 from ..server import AppContext, mcp
 from . import _annotations as _a
+from ._paging import list_all
 
 _HEX32 = re.compile(r"\b[0-9a-f]{32}\b")
 _GS_PRINT = "gs.print("
@@ -23,8 +24,6 @@ _SCRIPT_LIMIT = 200
 
 _ACL_TABLE = "sys_security_acl"
 _TABLE_FIELDS = "sys_id,name,label,super_class.name"
-_PAGE_SIZE = 100  # the client clamps at SN_MAX_PAGE_SIZE (default 100); page explicitly
-_MAX_PAGES = 20
 _ACL_CONCURRENCY = 8  # parallel stats calls per audit — enough to be fast, not enough to 429
 
 
@@ -38,21 +37,6 @@ async def _resolve_scope(client: ServiceNowClient, scope: str) -> dict[str, Any]
         "sys_scope", query=f"scope={scope}", fields="sys_id,scope,name", limit=1
     )
     return rows[0] if rows else None
-
-
-async def _list_all(
-    client: ServiceNowClient, table: str, *, query: str, fields: str
-) -> tuple[list[dict[str, Any]], bool]:
-    """Page through ``table`` until a short page. Returns (rows, truncated)."""
-    rows: list[dict[str, Any]] = []
-    for page in range(_MAX_PAGES):
-        batch = await client.list_records(
-            table, query=query, fields=fields, limit=_PAGE_SIZE, offset=page * _PAGE_SIZE
-        )
-        rows.extend(batch)
-        if len(batch) < _PAGE_SIZE:
-            return rows, False
-    return rows, True
 
 
 # ── upgrade_readiness_review ─────────────────────────────────────────
@@ -324,7 +308,7 @@ async def audit_acls(
         if scope_row is None:
             return json.dumps({"error": f"scope not found: {scope}"})
 
-        tables, truncated = await _list_all(
+        tables, truncated = await list_all(
             client,
             "sys_db_object",
             query=f"sys_scope={scope_row['sys_id']}",
@@ -423,7 +407,7 @@ async def upgrade_readiness_review(
 
         pages = await asyncio.gather(
             *(
-                _list_all(client, table, query=base_query + suffix, fields=fields)
+                list_all(client, table, query=base_query + suffix, fields=fields)
                 for table, (fields, suffix, _) in _REVIEW_TABLES.items()
             )
         )

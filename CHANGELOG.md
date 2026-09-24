@@ -17,12 +17,6 @@ All notable changes to this project will be documented here. The format is based
 - **Token status in diagnostics** — `servicenow://instance/info` and `servicenow://health` now report `token: {present, expires_in_s, refreshable, needs_login}`, so an expiring grant is visible before every tool starts failing at once.
 - **First tests for the auth layer** — `_auth_headers` and `_refresh_oauth_token` previously had no coverage. 98 new tests across `test_token_store.py`, `test_oauth_pkce.py` (S256 known-answer from RFC 7636 Appendix B), `test_client_auth.py` (via `httpx.MockTransport`) and `test_auth_cli.py` (real loopback sockets).
 
-### Changed
-- **Read-only by default.** `SN_READ_ONLY` now defaults to `true`; the 7 mutating tools refuse until the server is started with `--read-write` or `SN_READ_ONLY=false`. `--read-only` remains and overrides an env opt-in for one run. Pointing a fresh install at production can no longer change anything by accident.
-- **`login` / `logout` / `auth-status` are quiet.** The CLI installs the package log handler (default level WARNING, `SN_LOG_LEVEL` to change), so FastMCP's Rich root handler no longer prints every httpx request under the login prompt.
-- **`SN_TOOL_PACKAGES` default narrowed** from `all` (43 tools) to a curated subset — `core, itsm, scripts, catalog, audit` (27 tools, the "developer analytical" loop). Keeps the LLM's tool list compact out of the box; pass `SN_TOOL_PACKAGES=all` to opt back into every module, or pin a custom set. Domain-specific modules (`cmdb`, `knowledge`, `attachment`, `update_set`) are now opt-in.
-
-### Added
 - **CMDB tools** (`tools/cmdb.py`): `list_cis`, `get_ci`, `list_ci_relationships` (splits outgoing vs. incoming on `cmdb_rel_ci`), `find_cis_by_class`. All default to `display_value=true` since CMDB is reference-heavy.
 - **Knowledge tools** (`tools/knowledge.py`): `list_knowledge_articles` (defaults to `workflow_state=published`), `search_knowledge` (LIKE-OR across short_description + text + keywords), `get_knowledge_article`.
 - **`aggregate_records` tool** — Stats API wrapper with `sum` / `avg` / `min` / `max` / `count` + `group_by` + `having` for cross-record analysis without paginating raw rows. Backed by new `ServiceNowClient.aggregate()`.
@@ -37,6 +31,18 @@ All notable changes to this project will be documented here. The format is based
 Total tool count: **40** across 9 domains; **9** prompts; **4** resources.
 
 ---
+
+### Fixed
+- **Resources were invisible to clients.** `servicenow://instance/info` and `servicenow://health` declared a `ctx` parameter, which FastMCP takes as a sign of a URI template — so `resources/list` came back empty and only the two real templates were advertised. They now fetch the request context from the server and appear as plain resources. `health` checks every instance in multi-instance mode and reports the worst status; `schema/{table}` and `scope/{name}` return `{"error": ...}` instead of raising.
+- **Prompts no longer reference tools that are not loaded.** `update_set_review` registers only when the `update_set` package is loaded; `trace_incident_impact` only with `cmdb` + `knowledge` + `attachment`. Default installs advertise 7 prompts, `SN_TOOL_PACKAGES=all` advertises 9.
+- **Silent 100-row truncation.** `list_records` clamps every call at `SN_MAX_PAGE_SIZE`, so `describe_table` (limit 200), `summarize_update_set` (limit 500, whose `truncated` flag could therefore never be true), `audit_scope` (limit 200), `schema/{table}` and the schema discovery behind write validation (limit 2000) all quietly returned the first 100 rows. Each now pages explicitly (`tools/_paging.py`) and reports `truncated` where it matters; write validation no longer rejects valid inherited fields on wide tables.
+- **`describe_table` includes inherited fields.** It walks `sys_db_object.super_class` (new public `ServiceNowClient.table_chain`), so `incident` now lists the `task` fields the write-validation error told users to look for; each entry's `name` says which table defines it.
+- CONTRIBUTING cloned from the wrong GitHub account; README no longer claims every tool returns native types (the five analysis tools return a JSON report as text); duplicate `### Added` heading merged.
+
+### Changed
+- **Read-only by default.** `SN_READ_ONLY` now defaults to `true`; the 7 mutating tools refuse until the server is started with `--read-write` or `SN_READ_ONLY=false`. `--read-only` remains and overrides an env opt-in for one run. Pointing a fresh install at production can no longer change anything by accident.
+- **`login` / `logout` / `auth-status` are quiet.** The CLI installs the package log handler (default level WARNING, `SN_LOG_LEVEL` to change), so FastMCP's Rich root handler no longer prints every httpx request under the login prompt.
+- **`SN_TOOL_PACKAGES` default narrowed** from `all` (43 tools) to a curated subset — `core, itsm, scripts, catalog, audit` (27 tools, the "developer analytical" loop). Keeps the LLM's tool list compact out of the box; pass `SN_TOOL_PACKAGES=all` to opt back into every module, or pin a custom set. Domain-specific modules (`cmdb`, `knowledge`, `attachment`, `update_set`) are now opt-in.
 
 ## [0.1.0] — 2026-05-15
 

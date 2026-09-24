@@ -114,8 +114,8 @@ tests/
 | `analyze_catalog(category=None)` | Catalog UX audit |
 | `upgrade_readiness_review(scope, target_version)` | Cross-table script review with 🔴🟠🟡 classification (red-state TDD) |
 | `triage_incident(number)` | Linear-style triage with action enum (red-state TDD) |
-| `update_set_review(update_set)` | Risk-aware promotion audit |
-| `trace_incident_impact(number)` | Incident → CIs → relationships → recent changes → KB |
+| `update_set_review(update_set)` | Risk-aware promotion audit (registered only with the `update_set` package) |
+| `trace_incident_impact(number)` | Incident → CIs → relationships → recent changes → KB (needs `cmdb` + `knowledge` + `attachment`) |
 | `cross_instance_diff(table, query, instance_a, instance_b)` | Drift / promotion candidates / reverse-drift across instances |
 | `knowledge_coverage_report(time_window_days=90)` | Aggregate incidents vs KB count by category |
 | `instance_health_check()` | Active incidents, P1 count, unassigned, in-flight changes |
@@ -192,9 +192,9 @@ No network is touched. To test methods the base fake doesn't model (e.g. `aggreg
 
 ## Release / publishing
 
-- Tag with `v<semver>` annotated tag including release notes
-- `python -m build && twine upload dist/*` for PyPI (not done yet — needs PyPI registration)
-- GitHub release: `gh release create v0.1.0 --notes-from-tag` (may need `gh auth refresh -s repo`)
+- Bump `version` in `pyproject.toml`, move the CHANGELOG `[Unreleased]` entries under the new version, commit.
+- Tag with `v<semver>` (annotated, release notes in the message) and push the tag.
+- Create the GitHub release for that tag. **Publishing the release triggers `.github/workflows/publish.yml`**, which builds, smoke-installs and uploads to PyPI via trusted publishing (OIDC, no token). One-time setup: on PyPI, Publishing → "Add a new pending publisher" with owner `kvadis`, repo `simple-servicenow-mcp`, workflow `publish.yml`, environment `pypi`; in GitHub repo settings, create the `pypi` environment.
 - Smithery + mcpservers.org listings — manual submission
 
 ## Known gotchas

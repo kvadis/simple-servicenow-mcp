@@ -2,9 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TypeVar
+
 from mcp.server.fastmcp.prompts import base
 
+from .packages import selected_modules_from_env
 from .server import mcp
+
+_F = TypeVar("_F", bound=Callable[..., list[base.Message]])
+_LOADED_MODULES = selected_modules_from_env()
+
+
+def _prompt_if(*modules: str) -> Callable[[_F], _F]:
+    """Register the prompt only when every tool module it drives is loaded.
+
+    A prompt that asks for ``summarize_update_set`` is useless — and confusing
+    to the model — when SN_TOOL_PACKAGES left the update_set module out.
+    """
+
+    def decorate(fn: _F) -> _F:
+        if set(modules) <= _LOADED_MODULES:
+            mcp.prompt()(fn)
+        return fn
+
+    return decorate
 
 
 @mcp.prompt()
@@ -198,7 +220,7 @@ A markdown brief:
     ]
 
 
-@mcp.prompt()
+@_prompt_if("update_set")
 def update_set_review(update_set: str) -> list[base.Message]:
     """Risk-aware review of an update set before promotion."""
     return [
@@ -240,7 +262,7 @@ has 500+ changes and a deeper sweep is needed."""
     ]
 
 
-@mcp.prompt()
+@_prompt_if("cmdb", "knowledge", "attachment")
 def trace_incident_impact(number: str) -> list[base.Message]:
     """End-to-end impact analysis: incident → CIs → relationships → recent changes → KB."""
     return [

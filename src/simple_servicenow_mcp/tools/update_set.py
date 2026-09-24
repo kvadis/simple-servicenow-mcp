@@ -20,6 +20,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 from ..client import ServiceNowClient
 from ..server import AppContext, mcp
 from . import _annotations as _a
+from ._paging import list_all
 
 _SET_FIELDS = (
     "sys_id,name,description,state,application,parent,release_date,"
@@ -180,12 +181,15 @@ async def summarize_update_set(
     client = _client(ctx, instance)
     try:
         record = await client.get_record("sys_update_set", update_set_sys_id, fields=_SET_FIELDS)
-        # Pull up to 500 changes for the summary; deeper sets can be browsed via list_update_set_changes
-        changes = await client.list_records(
+        # Up to 500 changes (5 pages) for the summary; deeper sets can be
+        # browsed via list_update_set_changes. The client clamps single calls
+        # at 100 rows, so this has to page.
+        changes, truncated = await list_all(
+            client,
             "sys_update_xml",
             query=f"update_set={update_set_sys_id}",
             fields=_CHANGE_LIGHT_FIELDS,
-            limit=500,
+            max_pages=5,
         )
     except Exception as e:
         raise ToolError(str(e)) from e
@@ -202,5 +206,5 @@ async def summarize_update_set(
         "by_action": dict(by_action),
         "deletes": deletes,
         "high_risk_changes": high_risk,
-        "truncated": len(changes) == 500,
+        "truncated": truncated,
     }

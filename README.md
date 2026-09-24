@@ -40,7 +40,7 @@ Focused on **analytical intelligence** for developers and consultants, not just 
 - **9 prompts** orchestrating multi-step analytical workflows
 - **4 resources** for instance metadata, health, schema, and scope
 - **Schema-aware writes** — `create_record` / `update_record` validate field names against `sys_dictionary` (walks inheritance) and surface typos locally instead of opaque `400`s
-- **Structured output** — every tool returns native types; clients see typed `structuredContent` alongside text
+- **Structured output** — record tools return native types, so clients see typed `structuredContent` alongside text; the analysis tools (`audit_scope`, `audit_acls`, `upgrade_readiness_review`, `analyze_catalog_item`, `triage_incident`) return a JSON report as text
 - **Multi-instance** — point at prod / dev / test with a single server, switch via `instance="dev"` per call
 - **Three transports** — stdio (default), Streamable HTTP, SSE
 - **Safety rails** — read-only by default (`--read-write` / `SN_READ_ONLY=false` to opt in); `delete_*` returns a preview unless `confirm=true`
@@ -309,8 +309,8 @@ Resources are read-only documents the LLM can pull in for context. All return JS
 | URI | Description |
 | --- | --- |
 | `servicenow://instance/info` | Configured instance(s). Single-instance: `{mode, url, auth_method}`. Multi-instance: `{mode, default, instances: {name → {url, auth_method}}}`. No secrets. |
-| `servicenow://health` | Auth pre-flight — does a 1-row `sys_user` fetch and returns `{status: "ok", ...}` or `{status: "error", code, message, detail}`. Never raises — safe to call before workflows. |
-| `servicenow://schema/{table_name}` | Field definitions from `sys_dictionary` for the given table (element, column_label, internal_type, max_length, mandatory, reference, default_value, active). |
+| `servicenow://health` | Auth pre-flight — a 1-row `sys_user` fetch per instance. Single-instance: `{status: "ok", ...}` or `{status: "error", code, message, detail, token?}`. Multi-instance: `{status, default, instances: {name: {...}}}`. Never raises — safe to call before workflows. |
+| `servicenow://schema/{table_name}` | `{table, truncated, fields: [...]}` — the table's own `sys_dictionary` entries (element, column_label, internal_type, max_length, mandatory, reference, default_value, active), paged. Use the `describe_table` tool for inherited fields. `{error}` on failure. |
 | `servicenow://scope/{scope_name}` | App scope metadata from `sys_scope` (sys_id, scope, name, short_description, version, vendor, active). |
 
 ---
@@ -325,8 +325,8 @@ Prompts orchestrate multi-step analytical workflows. They emit a structured user
 | `analyze_catalog` | `category?` | Catalog UX audit — missing descriptions, mandatory-field overload, dangling variables |
 | `upgrade_readiness_review` | `scope`, `target_version` | Audits BR/SI/CS/UP/UA across a scope, classifies findings 🔴🟠🟡, emits migration checklist |
 | `triage_incident` | `number` | Linear-style triage with explicit action enum: `request-info` / `reassign` / `escalate` / `propose-resolution` |
-| `update_set_review` | `update_set` | Risk-aware audit before promotion: summary → high-risk drill-down → promotion checklist |
-| `trace_incident_impact` | `number` | End-to-end blast radius: incident → caller's CIs → relationships → recent changes → related KB |
+| `update_set_review` | `update_set` | Risk-aware audit before promotion: summary → high-risk drill-down → promotion checklist. Registered only when the `update_set` package is loaded |
+| `trace_incident_impact` | `number` | End-to-end blast radius: incident → caller's CIs → relationships → recent changes → related KB. Registered only when `cmdb`, `knowledge` and `attachment` are loaded |
 | `cross_instance_diff` | `table`, `query`, `instance_a`, `instance_b` | Compare same-query records across two configured instances — drift, promotion candidates, reverse-drift |
 | `knowledge_coverage_report` | `time_window_days=90` | Aggregate incidents by category vs published KB count, flag gaps, propose the highest-ROI articles to write |
 | `instance_health_check` | — | Active incidents, P1 count, unassigned, in-flight changes, version |

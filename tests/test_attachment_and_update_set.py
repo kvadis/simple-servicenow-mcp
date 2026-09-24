@@ -337,3 +337,36 @@ async def test_summarize_update_set_flags_deletes_and_high_risk() -> None:
     # The DELETE row surfaces too
     assert len(result["deletes"]) == 1
     assert result["deletes"][0]["target_name"] == "INC-old"
+
+
+async def test_summarize_update_set_pages_and_reports_truncation() -> None:
+    """The client clamps at 100 rows per call; the summary pages up to 500 and says when it stopped."""
+    from simple_servicenow_mcp.tools.update_set import summarize_update_set
+
+    client = FakeUpdateSetClient()
+    client.get_response = {"sys_id": "us-1", "name": "Huge Set"}
+    client.list_responses = {
+        "sys_update_xml": [{"type": "sys_script", "action": "INSERT_OR_UPDATE", "target_name": "x"}]
+        * 100,
+    }
+
+    result = await summarize_update_set("us-1", _ctx(client))  # type: ignore[arg-type]
+
+    assert result["total_changes"] == 500
+    assert result["truncated"] is True
+
+
+async def test_summarize_update_set_is_not_truncated_when_a_page_runs_short() -> None:
+    from simple_servicenow_mcp.tools.update_set import summarize_update_set
+
+    client = FakeUpdateSetClient()
+    client.get_response = {"sys_id": "us-1", "name": "Small Set"}
+    client.list_responses = {
+        "sys_update_xml": [{"type": "sys_script", "action": "INSERT_OR_UPDATE", "target_name": "x"}]
+        * 4,
+    }
+
+    result = await summarize_update_set("us-1", _ctx(client))  # type: ignore[arg-type]
+
+    assert result["total_changes"] == 4
+    assert result["truncated"] is False

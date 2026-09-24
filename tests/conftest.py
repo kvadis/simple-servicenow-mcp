@@ -94,11 +94,15 @@ class FakeServiceNowClient:
         self.count_defaults: dict[str, int] = {}
         self.raise_on_table: dict[str, Exception] = {}
         self.raise_on_count: dict[str, Exception] = {}
+        self.chains: dict[str, list[str]] = {}  # table → [table, parent, ...]
+        self.pages: dict[tuple[str, int], list[dict[str, Any]]] = {}  # (table, offset) → rows
 
     async def list_records(self, table: str, **kwargs: Any) -> list[dict[str, Any]]:
         self.calls.append(FakeCall("list", table, kwargs))
         if table in self.raise_on_table:
             raise self.raise_on_table[table]
+        if (table, kwargs.get("offset", 0)) in self.pages:
+            return self.pages[(table, kwargs.get("offset", 0))]
         if table in self.list_responses:
             return self.list_responses[table]
         return self.list_response
@@ -106,6 +110,9 @@ class FakeServiceNowClient:
     async def get_record(self, table: str, sys_id: str, **kwargs: Any) -> dict[str, Any]:
         self.calls.append(FakeCall("get", table, {"sys_id": sys_id, **kwargs}))
         return self.get_response
+
+    async def table_chain(self, table: str) -> list[str]:
+        return self.chains.get(table, [table])
 
     async def get_count(self, table: str, query: str | None = None) -> int:
         self.calls.append(FakeCall("count", table, {"query": query}))

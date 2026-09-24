@@ -689,13 +689,21 @@ class ServiceNowClient:
             chain = await self._collect_table_chain(table)
             if not chain:
                 return None
-            entries = await self.list_records(
-                "sys_dictionary",
-                query=f"nameIN{','.join(chain)}^elementISNOTEMPTY",
-                fields="element",
-                limit=2000,
-            )
-            fields = {e["element"] for e in entries if e.get("element")}
+            # list_records clamps at max_page_size; a task-derived table has
+            # several hundred fields, so page until a short page (cap 5000).
+            page = self._settings.max_page_size
+            fields: set[str] = set()
+            for offset in range(0, 5000, page):
+                entries = await self.list_records(
+                    "sys_dictionary",
+                    query=f"nameIN{','.join(chain)}^elementISNOTEMPTY",
+                    fields="element",
+                    limit=page,
+                    offset=offset,
+                )
+                fields.update(e["element"] for e in entries if e.get("element"))
+                if len(entries) < page:
+                    break
             self._field_cache[table] = fields
             logger.info(
                 "schema.discovered",
@@ -708,6 +716,10 @@ class ServiceNowClient:
                 extra={"table": table, "status": e.status, "message": e.message},
             )
             return None
+
+    async def table_chain(self, table: str) -> list[str]:
+        """``[table, parent, grandparent, ...]`` from ``sys_db_object.super_class``."""
+        return await self._collect_table_chain(table)
 
     async def _collect_table_chain(self, table: str) -> list[str]:
         """Walk sys_db_object.super_class upward; returns [table, parent, ...]."""

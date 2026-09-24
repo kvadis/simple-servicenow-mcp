@@ -19,9 +19,10 @@ from mcp.server.fastmcp.exceptions import ToolError
 from ..client import ServiceNowClient
 from ..server import AppContext, mcp
 from . import _annotations as _a
+from ._paging import list_all
 
 _SCHEMA_FIELDS = (
-    "element,column_label,internal_type,max_length,mandatory,reference,default_value,active"
+    "name,element,column_label,internal_type,max_length,mandatory,reference,default_value,active"
 )
 
 _DEFAULT_SEARCH_FIELDS = "short_description,description,name,number"
@@ -273,9 +274,11 @@ async def describe_table(
 ) -> list[dict[str, Any]]:
     """Describe a ServiceNow table's schema — field names, types, and constraints.
 
-    Returns sys_dictionary entries for the table, excluding collection-type fields
-    (which aren't useful for query/output decisions). Use this before list_records
-    or create_record to discover the right column names and types.
+    Returns sys_dictionary entries for the table **and every table it extends**
+    (``incident`` includes the ``task`` fields), excluding collection-type
+    fields. Each entry's ``name`` says which table in the chain defines it. Use
+    this before list_records or create_record to discover the right column
+    names and types.
 
     Args:
         table: Table name (e.g. incident, sc_cat_item, sys_user)
@@ -283,12 +286,15 @@ async def describe_table(
     """
     client = _client(ctx, instance)
     try:
-        return await client.list_records(
+        chain = await client.table_chain(table) or [table]
+        scope = f"name={chain[0]}" if len(chain) == 1 else f"nameIN{','.join(chain)}"
+        rows, _ = await list_all(
+            client,
             "sys_dictionary",
-            query=f"name={table}^internal_type!=collection",
+            query=f"{scope}^internal_type!=collection",
             fields=_SCHEMA_FIELDS,
-            limit=200,
         )
+        return rows
     except Exception as e:
         raise ToolError(str(e)) from e
 
