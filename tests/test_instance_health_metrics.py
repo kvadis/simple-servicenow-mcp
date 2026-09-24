@@ -11,7 +11,7 @@ Implementation should live in a new module
 `servicenow://health` Resource, but distinct from it — the Resource is a
 boolean connectivity probe, the tool is a metrics report).
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations

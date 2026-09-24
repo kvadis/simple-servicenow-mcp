@@ -12,7 +12,7 @@ superset of `audit_scope`:
 Implementation should live in `simple_servicenow_mcp.tools.audit`
 alongside the in-flight `audit_scope`.
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations
