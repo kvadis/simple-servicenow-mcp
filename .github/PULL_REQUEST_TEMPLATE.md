@@ -23,7 +23,7 @@
 - [ ] `ruff check .` and `ruff format --check .` pass
 - [ ] New tools / prompts have a behavioural test in `tests/`
 - [ ] Tested interactively against a real ServiceNow instance (PDI is fine)
-- [ ] If user-visible, documented in `README.md` and `CHANGELOG.md` (Unreleased)
+- [ ] If user-visible, documented in `README.md` or `docs/`, and in `CHANGELOG.md` (Unreleased)
 
 ## Breaking changes
 

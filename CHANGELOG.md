@@ -6,6 +6,10 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+### Changed
+- **README cut from about 2,700 words to under 600.** It now opens with real `upgrade_readiness_review` output, and a copy-paste client config is in the first screen. Reference material moved to `docs/`: `configuration.md` (install, client setup including VS Code and Claude Code, environment variables, tool packages, read-only mode, multi-instance, transports), `authentication.md`, and `tools.md` (every tool, prompt and resource, plus recipes). README links are absolute, so they also work on PyPI.
+- **Wrong tool counts fixed** across the README, `.env.example`, `AGENTS.md` and `SECURITY.md`: 43 tools, not 40; a 27-tool default, not 24; `triage_incident` was missing from the reference. The new `tests/test_docs.py` checks the docs against the running server's inventory, so the counts can't drift again.
+
 ### Fixed
 - **`python -m simple_servicenow_mcp.server` served no tools, prompts or resources.** Run that way, Python loads `server.py` twice, and everything registered on the copy that wasn't serving. It now starts the right copy, and `python -m simple_servicenow_mcp` works too (new `__main__.py`). The console script and Docker image were not affected.
 - **The documented `mcp dev src/simple_servicenow_mcp/server.py` failed with an ImportError** (it loads the file outside its package). The docs now use `npx @modelcontextprotocol/inspector simple-servicenow-mcp`.

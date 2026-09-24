@@ -87,7 +87,7 @@ src/simple_servicenow_mcp/
                     # All have openWorldHint=True (ServiceNow is external state)
     table.py        # Generic Table API (list, get, create, update, delete, count,
                     #   search, describe, aggregate). Field-name validation via sys_dictionary
-    incident.py     # Incident shortcuts (list, create, comment, resolve)
+    incident.py     # Incident shortcuts (list, create, comment, resolve, triage)
     script.py       # Scripts: BR, SI, CS, UP, UA + get_script_body
     catalog.py      # Catalog: categories, items, variables, analyze_catalog_item (UX findings)
     cmdb.py         # CMDB: list_cis, get_ci, list_ci_relationships (split direction), find_cis_by_class
@@ -102,7 +102,7 @@ src/simple_servicenow_mcp/
   prompts.py        # MCP prompts (9 total) — see "Prompts" below
 tests/
   conftest.py       # FakeServiceNowClient + WIP test gating (--run-wip flag)
-  test_*.py         # Behavioural tests; 6 files are WIP (parallel TDD session)
+  test_*.py         # Behavioural tests; 3 files are WIP (compare_scopes, find_orphaned_records, instance_health_metrics)
 .github/
   workflows/ci.yml  # Matrix py 3.10-3.13: ruff check + format + pytest + wheel build
   ISSUE_TEMPLATE/   # bug + feature templates
@@ -133,10 +133,13 @@ tests/
 - **Tool errors** — raise `ToolError` from `mcp.server.fastmcp.exceptions`, never return raw exceptions
 - **Native return types** — FastMCP auto-derives `outputSchema` and emits `structuredContent`
 - **Config** — `pydantic-settings` with `env_prefix="SN_"`, loads `.env` automatically
-- **Auth** — Basic (base64 header) or OAuth 2.0 client credentials (cached token, auto-refresh 60s before expiry)
+- **Auth** — Basic (base64 header), OAuth 2.0 client credentials (cached token, auto-refresh 60s before expiry), or authorization code + PKCE (`login` CLI writes a token store the server reads; 401 → refresh → retry once)
 - **Transport** — stdio (stdout reserved for JSON-RPC, all logs to stderr)
 - **Retries** — 429 honours `Retry-After` seconds, otherwise exponential backoff with `SN_RETRY_MAX_DELAY` cap
 - **Schema validation** — `create_record` / `update_record` walk `sys_db_object.super_class` to assemble valid field names from `sys_dictionary`; fail-open if discovery is denied
+- **Annotations** — every tool carries `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint` (presets in `tools/_annotations.py`); clients use them to gate auto-approval
+- **Logging** — stdlib `logging` with a small JSON formatter rather than `structlog`: one dependency fewer
+- **Test doubles** — no mocking framework: `FakeServiceNowClient` for tool tests, `httpx.MockTransport` for anything inside `ServiceNowClient` (the fake never reaches `_request`, which is how the 0.2.0 attachment bug slipped through)
 
 ## Adding New Tools
 
@@ -148,7 +151,7 @@ tests/
 6. Wrap ServiceNow calls in `try/except` and re-raise as `ToolError(str(e))`
 7. If creating a new tools module: register it in `packages.py` (`PACKAGES` dict) and `server.py` (conditional import block)
 8. Add behavioural tests in `tests/test_<module>.py` using the existing `FakeServiceNowClient`
-9. Document in `README.md` tool reference table and `CHANGELOG.md` under `[Unreleased]`
+9. Document in `docs/tools.md` (and the package count in `docs/configuration.md` if it changes) and `CHANGELOG.md` under `[Unreleased]`; `tests/test_docs.py` checks both
 
 ## ServiceNow API Notes
 

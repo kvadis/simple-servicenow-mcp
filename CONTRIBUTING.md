@@ -55,7 +55,7 @@ Run it from the repo root so the server picks up your `.env`. (`mcp dev server.p
 4. Return native types — FastMCP auto-derives `outputSchema`.
 5. Wrap ServiceNow calls in `try/except` and re-raise as `ToolError(str(e))`.
 6. Register the module in `server.py` *if* you created a new tools module.
-7. Document it in the README's tool reference table and in `CHANGELOG.md` under `[Unreleased]`.
+7. Document it in [`docs/tools.md`](docs/tools.md) and in `CHANGELOG.md` under `[Unreleased]`. `tests/test_docs.py` fails if a tool, prompt or resource is missing from `docs/tools.md`, or if a package's tool count in `docs/configuration.md` is wrong.
 
 ## Commit messages
 
@@ -67,6 +67,16 @@ Conventional Commits-ish, but pragmatic:
 - `test: cover read-only refusal for attachment uploads`
 
 Keep the body focused on the *why*. The diff already shows the *what*.
+
+## Where help is wanted
+
+- **Features with failing tests already written:** `compare_scopes`, `find_orphaned_records` and `instance_health_metrics`. Run `pytest -q --run-wip` to see them.
+- **Authentication for the HTTP transport** (OAuth 2.1 + PKCE for incoming requests). Until then, stdio is the recommended transport.
+- **MID Server support**, for on-prem instances without inbound REST.
+- **Script sync to Git**: pull `sys_script*` records into a local repo for diff and blame.
+- **More prompts**, e.g. a release post-mortem or a Flow Designer review.
+
+Open an issue before starting on one, so the work isn't duplicated.
 
 ## Reporting security issues
 
