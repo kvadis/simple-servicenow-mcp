@@ -20,7 +20,6 @@ _HEX32 = re.compile(r"\b[0-9a-f]{32}\b")
 _GS_PRINT = "gs.print("
 _SCRIPT_TABLES = ("sys_script", "sys_script_include")
 _SCRIPT_FIELDS = "sys_id,name,script"
-_SCRIPT_LIMIT = 200
 
 _ACL_TABLE = "sys_security_acl"
 _TABLE_FIELDS = "sys_id,name,label,super_class.name"
@@ -237,7 +236,8 @@ async def audit_scope(
         instance: Named instance from SN_INSTANCES_FILE; omit for the default.
 
     Returns:
-        JSON string with ``scope``, ``records_audited`` and ``findings`` (list of
+        JSON string with ``scope``, ``records_audited``, ``truncated`` (a page
+        cap was hit, so the audit is partial) and ``findings`` (list of
         ``{type, sys_id, name, evidence}``). On unknown scope returns
         ``{"error": "<msg>"}`` rather than raising.
     """
@@ -250,11 +250,11 @@ async def audit_scope(
         query = f"sys_scope={scope_row['sys_id']}"
         results = await asyncio.gather(
             *(
-                client.list_records(table, query=query, fields=_SCRIPT_FIELDS, limit=_SCRIPT_LIMIT)
+                list_all(client, table, query=query, fields=_SCRIPT_FIELDS)
                 for table in _SCRIPT_TABLES
             )
         )
-        records = [r for batch in results for r in batch]
+        records = [r for batch, _ in results for r in batch]
 
         findings: list[dict[str, Any]] = []
         for record in records:
@@ -264,6 +264,7 @@ async def audit_scope(
             {
                 "scope": scope,
                 "records_audited": len(records),
+                "truncated": any(was_truncated for _, was_truncated in results),
                 "findings": findings,
             }
         )

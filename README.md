@@ -286,7 +286,7 @@ Every tool accepts an optional `instance: str | None = None` parameter (selects 
 
 | Tool | Args | Annotation | Returns |
 | --- | --- | --- | --- |
-| `list_update_sets` | `state="in_progress"`, `application?`, `query?`, `limit=20`, `offset=0` | read | `list[dict]` |
+| `list_update_sets` | `state="in progress"`, `application?`, `query?`, `limit=20`, `offset=0` | read | `list[dict]` |
 | `get_update_set` | `sys_id` | read | `{update_set, change_count}` |
 | `list_update_set_changes` | `update_set_sys_id`, `query?`, `limit=50`, `offset=0`, `verbose=False` | read | `list[dict]` (XML payload excluded unless verbose) |
 | `summarize_update_set` | `update_set_sys_id` | read | `{update_set, total_changes, by_type, by_action, deletes[], high_risk_changes[], truncated}` |
