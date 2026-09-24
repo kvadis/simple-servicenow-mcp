@@ -309,3 +309,105 @@ async def test_audit_acls_should_wrap_client_errors_in_tool_error(
     # Act / Assert
     with pytest.raises(ToolError):
         await audit_acls("x_co_app", fake_ctx)
+
+
+# ── 10. ACL inheritance ─────────────────────────────────────────────────
+
+
+async def test_audit_acls_should_downgrade_to_warning_when_table_inherits_acls(
+    fake_client,
+    fake_ctx,
+) -> None:
+    """A table extending another falls back to the parent's record ACLs.
+
+    Zero ACLs of its own is still worth reporting, but it is not the
+    "nothing protects this" case — severity warning, with the parent named.
+    """
+    # Arrange
+    from simple_servicenow_mcp.tools.audit import audit_acls
+
+    fake_client.list_responses["sys_scope"] = [_SCOPE_RECORD]
+    fake_client.list_responses["sys_db_object"] = [
+        {**_TABLE_UNPROTECTED, "super_class.name": "task"},
+    ]
+
+    # Act
+    parsed = json.loads(await audit_acls("x_co_app", fake_ctx))
+
+    # Assert
+    [finding] = parsed["findings"]
+    assert finding["severity"] == "warning"
+    assert finding["inherits_from"] == "task"
+    assert "task" in finding["remediation"]
+
+
+# ── 11. Pagination past the client clamp ────────────────────────────────
+
+
+def _paging_ctx(pages: dict[int, list[dict]], fake_settings):
+    """A ctx whose client serves sys_db_object by offset, like the real Table API."""
+    from types import SimpleNamespace
+
+    from conftest import FakeCall, FakeServiceNowClient
+    from simple_servicenow_mcp.server import AppContext
+
+    class _PagingFake(FakeServiceNowClient):
+        async def list_records(self, table: str, **kwargs):
+            if table != "sys_db_object":
+                return await super().list_records(table, **kwargs)
+            self.calls.append(FakeCall("list", table, kwargs))
+            return pages.get(kwargs.get("offset", 0), [])
+
+    fake = _PagingFake()
+    fake.list_responses["sys_scope"] = [_SCOPE_RECORD]
+    ctx = SimpleNamespace(
+        request_context=SimpleNamespace(
+            lifespan_context=AppContext(client=fake, settings=fake_settings)  # type: ignore[arg-type]
+        )
+    )
+    return fake, ctx
+
+
+def _tables(n: int, start: int = 0) -> list[dict]:
+    return [
+        {"sys_id": f"t{i:031d}", "name": f"u_t{i}", "label": f"T{i}"}
+        for i in range(start, start + n)
+    ]
+
+
+async def test_audit_acls_should_page_past_the_client_clamp(fake_settings) -> None:
+    """The client caps every page at 100 rows; a scope with more tables than
+    that must be paged with offset, not silently cut to the first page."""
+    # Arrange
+    from simple_servicenow_mcp.tools.audit import audit_acls
+
+    fake, ctx = _paging_ctx({0: _tables(100), 100: _tables(5, start=100)}, fake_settings)
+    fake.count_defaults["sys_security_acl"] = 1
+
+    # Act
+    parsed = json.loads(await audit_acls("x_co_app", ctx))
+
+    # Assert
+    assert parsed["tables_audited"] == 105
+    assert parsed["truncated"] is False
+    offsets = [c.kwargs.get("offset") for c in fake.calls if c.table == "sys_db_object"]
+    assert offsets == [0, 100]
+
+
+async def test_audit_acls_should_report_truncated_when_pages_never_run_short(
+    fake_settings,
+) -> None:
+    """A page cap keeps a runaway scope bounded; the caller must be told."""
+    # Arrange
+    from simple_servicenow_mcp.tools.audit import audit_acls
+
+    full = _tables(100)
+    fake, ctx = _paging_ctx({offset: full for offset in range(0, 100_000, 100)}, fake_settings)
+    fake.count_defaults["sys_security_acl"] = 1
+
+    # Act
+    parsed = json.loads(await audit_acls("x_co_app", ctx))
+
+    # Assert
+    assert parsed["truncated"] is True
+    assert parsed["tables_audited"] == 2000  # 20 pages x 100

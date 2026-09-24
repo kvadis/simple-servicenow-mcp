@@ -368,3 +368,139 @@ async def test_upgrade_readiness_review_should_wrap_client_errors_in_tool_error(
     # Act / Assert
     with pytest.raises(ToolError):
         await upgrade_readiness_review("x_co_app", fake_ctx)
+
+
+# ── 12+. Detector precision ─────────────────────────────────────────────
+
+_SYS_ID_A = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+_SYS_ID_B = "0f9e8d7c6b5a4938271605f4e3d2c1b0"
+
+
+async def _review(fake_client, fake_ctx, **artefacts) -> dict:
+    from simple_servicenow_mcp.tools.audit import upgrade_readiness_review
+
+    _stub_scope_with_artefacts(fake_client, **artefacts)
+    return json.loads(await upgrade_readiness_review("x_co_app", fake_ctx))
+
+
+async def test_upgrade_readiness_review_should_report_field_and_line_of_each_finding(
+    fake_client, fake_ctx
+) -> None:
+    """The prompt's findings table has a Line column; getXMLWait is on line 6 of the sample."""
+    parsed = await _review(fake_client, fake_ctx, sys_script=[_BR_WITH_GET_XML_WAIT])
+
+    [finding] = [f for f in parsed["findings"] if f["type"] == "sync_ajax"]
+    assert (finding["field"], finding["line"]) == ("script", 6)
+    assert finding["name"] == "LegacySyncFetch"
+    assert finding["recommendation"]
+
+
+async def test_upgrade_readiness_review_should_flag_current_update_only_in_before_after_rules(
+    fake_client, fake_ctx
+) -> None:
+    """current.update() is a recursion hazard in before/after rules; in a display rule it is fine."""
+    before = {
+        "sys_id": "br_before",
+        "name": "Before",
+        "when": "before",
+        "script": "current.update();",
+    }
+    display = {
+        "sys_id": "br_display",
+        "name": "Display",
+        "when": "display",
+        "script": "current.update();",
+    }
+
+    parsed = await _review(fake_client, fake_ctx, sys_script=[before, display])
+
+    flagged = {f["sys_id"] for f in parsed["findings"] if f["type"] == "current_update_in_rule"}
+    assert flagged == {"br_before"}
+
+
+async def test_upgrade_readiness_review_should_report_each_hardcoded_sys_id_once_and_skip_own(
+    fake_client, fake_ctx
+) -> None:
+    """Repeated ids collapse to one finding; a record referencing its own sys_id is not a finding."""
+    record = {
+        "sys_id": _SYS_ID_A,
+        "name": "SelfAware",
+        "script": f"var me = '{_SYS_ID_A}';\nvar x = '{_SYS_ID_B}';\nvar y = '{_SYS_ID_B}';",
+    }
+
+    parsed = await _review(fake_client, fake_ctx, sys_script_include=[record])
+
+    ids = [f for f in parsed["findings"] if f["type"] == "hardcoded_sys_id"]
+    assert [f["evidence"] for f in ids] == [f"var x = '{_SYS_ID_B}';"]
+    assert ids[0]["severity"] == "risk"
+    assert ids[0]["line"] == 2
+
+
+async def test_upgrade_readiness_review_should_not_apply_dom_rule_to_server_scripts(
+    fake_client, fake_ctx
+) -> None:
+    """``document.`` in a script include is not browser DOM access."""
+    record = {"sys_id": "si_doc", "name": "DocBuilder", "script": "var d = document.title;"}
+
+    parsed = await _review(fake_client, fake_ctx, sys_script_include=[record])
+
+    assert [f for f in parsed["findings"] if f["type"] == "dom_access"] == []
+
+
+async def test_upgrade_readiness_review_should_scan_both_ui_policy_script_fields(
+    fake_client, fake_ctx
+) -> None:
+    """UI policies carry script_true and script_false; either can hold the blocker."""
+    policy = {
+        "sys_id": "up_1",
+        "short_description": "Hide cost centre",
+        "script_true": "function onCondition() {}",
+        "script_false": "function onCondition() {\n  ga.getXMLWait();\n}",
+    }
+
+    parsed = await _review(fake_client, fake_ctx, sys_ui_policy=[policy])
+
+    [finding] = [f for f in parsed["findings"] if f["type"] == "sync_ajax"]
+    assert (finding["table"], finding["field"], finding["line"]) == (
+        "sys_ui_policy",
+        "script_false",
+        2,
+    )
+    assert finding["name"] == "Hide cost centre"
+
+
+async def test_upgrade_readiness_review_should_grade_verdict_from_worst_severity(
+    fake_client, fake_ctx
+) -> None:
+    """red if anything blocks, yellow if only risks, green when clean."""
+    risk_only = {"sys_id": "si_r", "name": "R", "script": f"var x = '{_SYS_ID_B}';"}
+
+    clean = await _review(fake_client, fake_ctx)
+    yellow = await _review(fake_client, fake_ctx, sys_script_include=[risk_only])
+    red = await _review(fake_client, fake_ctx, sys_script=[_BR_WITH_GET_XML_WAIT])
+
+    assert (clean["verdict"], yellow["verdict"], red["verdict"]) == ("green", "yellow", "red")
+    assert clean["severity_counts"] == {"blocking": 0, "risk": 0, "info": 0}
+
+
+async def test_upgrade_readiness_review_should_report_per_table_counts_and_out_of_scope(
+    fake_client, fake_ctx
+) -> None:
+    """The report says what was looked at and, explicitly, what was not."""
+    parsed = await _review(
+        fake_client,
+        fake_ctx,
+        sys_script=[_BR_WITH_GET_XML_WAIT],
+        sys_script_include=[_SI_WITH_GS_LOG],
+    )
+
+    assert parsed["per_table"] == {
+        "sys_script": 1,
+        "sys_script_include": 1,
+        "sys_script_client": 0,
+        "sys_ui_policy": 0,
+        "sys_ui_action": 0,
+    }
+    assert parsed["records_audited"] == 2
+    assert parsed["truncated"] is False
+    assert parsed["out_of_scope"] and all(isinstance(s, str) for s in parsed["out_of_scope"])
