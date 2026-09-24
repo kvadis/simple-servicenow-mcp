@@ -11,7 +11,7 @@ field (default `name`). Returns three sets: only_in_a, only_in_b, in_both.
 Implementation should live in `simple_servicenow_mcp.tools.audit`
 alongside `audit_scope` and `upgrade_readiness_review`.
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations

@@ -19,7 +19,7 @@ Implementation should live in `simple_servicenow_mcp.tools.audit` (sibling
 of `audit_scope`, `upgrade_readiness_review`, `compare_scopes`,
 `audit_acls`).
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations

@@ -9,7 +9,7 @@ overload, etc.
 Implementation should live alongside the other catalog tools in
 `simple_servicenow_mcp.tools.catalog`.
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations

@@ -9,7 +9,7 @@ returns the bundle as a single structured payload.
 Implementation should live in `simple_servicenow_mcp.tools.incident`
 alongside the existing incident-domain shortcuts.
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations

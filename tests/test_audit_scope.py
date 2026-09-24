@@ -9,7 +9,7 @@ The implementation lives in a module that does not yet exist
 (``simple_servicenow_mcp.tools.audit``). These tests must fail with
 ImportError / ModuleNotFoundError until GREEN.
 
-Behaviour-style names per Testing Conventions in CLAUDE.md.
+Behaviour-style names per Testing Conventions in AGENTS.md.
 """
 
 from __future__ import annotations
