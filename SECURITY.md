@@ -6,7 +6,8 @@ The most recent minor release is supported. Older versions may not receive secur
 
 | Version | Supported |
 | --- | --- |
-| 0.1.x | ✅ |
+| 0.2.x | ✅ |
+| < 0.2 | ❌ |
 
 ## Reporting a vulnerability
 
@@ -40,7 +41,7 @@ Out of scope:
 
 - Vulnerabilities in dependencies — please report to the upstream maintainer (e.g. `httpx`, `pydantic`, `mcp`). We'll bump promptly once a fix is released.
 - Issues in ServiceNow itself — those go to [ServiceNow's PSIRT](https://www.servicenow.com/company/trust/security-advisory.html).
-- Misconfiguration on the operator's side (e.g. running the MCP unauthenticated on a public network without `--read-only`). The README documents recommended hardening; please read it first.
+- Misconfiguration on the operator's side (e.g. running the MCP unauthenticated on a public network without `--read-only`). The hardening checklist below covers the recommended setup; please read it first.
 
 ## Hardening checklist for operators
 
@@ -49,4 +50,4 @@ Out of scope:
 - The server is **read-only by default**. Only pass `--read-write` / `SN_READ_ONLY=false` for the specific client that needs to write, never for one shared with an agent you don't fully trust.
 - For HTTP transport, put it **behind an authenticating proxy** (Cloudflare Access, oauth2-proxy, etc.). The MCP doesn't yet do incoming OAuth 2.1 PKCE.
 - Store `instances.json` outside the repo, with restricted file permissions (`chmod 600`).
-- Pin the version in production (`pip install simple-servicenow-mcp==0.1.0`) rather than tracking latest.
+- Pin the version in production (`pip install simple-servicenow-mcp==X.Y.Z`) rather than tracking latest.

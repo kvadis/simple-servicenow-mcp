@@ -58,6 +58,7 @@ Homepage = "https://github.com/kvadis/simple-servicenow-mcp"
 Repository = "https://github.com/kvadis/simple-servicenow-mcp"
 Issues = "https://github.com/kvadis/simple-servicenow-mcp/issues"
 Changelog = "https://github.com/kvadis/simple-servicenow-mcp/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/kvadis/simple-servicenow-mcp/tree/main/docs"
 
 [project.scripts]
 simple-servicenow-mcp = "simple_servicenow_mcp.server:main"
@@ -69,6 +70,7 @@ packages = ["src/simple_servicenow_mcp"]
 include = [
     "src/",
     "tests/",
+    "docs/",
     "README.md",
     "LICENSE",
     "CHANGELOG.md",
