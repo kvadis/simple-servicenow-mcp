@@ -33,6 +33,22 @@ _WIP_TEST_FILES = {
 }
 
 
+@pytest.fixture(autouse=True)
+def _isolate_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the developer's own configuration out of every test.
+
+    Deleting an SN_* variable does not override ``.env`` — pydantic-settings
+    falls back to the dotenv file in the cwd — so a repo-root ``.env`` or
+    ``instances.json`` would otherwise leak into tests that run fine in CI.
+    """
+    import os
+
+    for name in list(os.environ):
+        if name.startswith("SN_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
+
+
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--run-wip",

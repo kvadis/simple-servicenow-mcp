@@ -6,6 +6,15 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
+### Added
+- **OAuth 2.0 Authorization Code + PKCE** (`SN_AUTH_METHOD=oauth_authorization_code`) — browser-delegated login, so no password is stored and access is tied to a real user identity. Where the instance has SSO configured, `/oauth_auth.do` redirects to the IdP, making this the SSO path; where it does not, it is still a browser login rather than a credential in `.env`. Existing `basic` and `oauth` (client credentials) methods are unchanged — `oauth` continues to mean client credentials.
+- **`login` / `logout` / `auth-status` subcommands** (`auth_cli.py`) — an MCP server on stdio has no channel to a human, so authorisation runs as a separate process that writes a token the server picks up. `login` binds a loopback listener and opens a browser; `--paste` covers headless boxes and instances where only `oauth_redirect.do` may be registered. Dispatched before the server's own argparse, so the bare stdio invocation is untouched.
+- **Persistent token store** (`token_store.py`) — `~/.config/simple-servicenow-mcp/tokens.json`, `0600` in a `0700` directory, written atomically, keyed by instance host + client id so tokens survive restarts, renames and single↔multi-instance switches. A damaged file degrades to "no token" rather than raising, since it is read during client construction and would otherwise break startup for every configured instance.
+- **`refresh_token` grant with rotation support**, a refresh lock so concurrent tool calls spend one grant rather than N, and cross-process awareness — a token another process already refreshed is adopted instead of spending the grant again.
+- **`401 → refresh → retry once`** in the request loop, with its own attempt budget (`max_retries=0` is legal and previously would have starved the re-auth). 401 stays out of the retryable set, so genuine permission errors still fail fast, and basic auth is excluded entirely.
+- **Token status in diagnostics** — `servicenow://instance/info` and `servicenow://health` now report `token: {present, expires_in_s, refreshable, needs_login}`, so an expiring grant is visible before every tool starts failing at once.
+- **First tests for the auth layer** — `_auth_headers` and `_refresh_oauth_token` previously had no coverage. 98 new tests across `test_token_store.py`, `test_oauth_pkce.py` (S256 known-answer from RFC 7636 Appendix B), `test_client_auth.py` (via `httpx.MockTransport`) and `test_auth_cli.py` (real loopback sockets).
+
 ### Changed
 - **`SN_TOOL_PACKAGES` default narrowed** from `all` (40 tools) to a curated subset — `core, itsm, scripts, catalog, audit` (24 tools, the "developer analytical" loop). Keeps the LLM's tool list compact out of the box; pass `SN_TOOL_PACKAGES=all` to opt back into every module, or pin a custom set. Domain-specific modules (`cmdb`, `knowledge`, `attachment`, `update_set`) are now opt-in.
 

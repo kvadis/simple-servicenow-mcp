@@ -38,6 +38,8 @@ _OVERRIDABLE_FIELDS = (
     "password",
     "client_id",
     "client_secret",
+    "oauth_redirect_uri",
+    "oauth_scope",
     "api_timeout",
     "default_page_size",
     "max_page_size",
@@ -90,12 +92,14 @@ def _merge(fallback: Settings, overrides: dict[str, Any]) -> Settings:
     return Settings(**base)
 
 
-def load_instances(path: Path, fallback: Settings) -> InstanceRegistry:
-    """Load ``instances.json`` and build a client per entry.
+def load_instance_settings(path: Path, fallback: Settings) -> tuple[dict[str, Settings], str]:
+    """Parse and validate ``instances.json`` into Settings per entry.
 
-    ``fallback`` supplies defaults for any field a per-instance entry omits, so
-    shared credentials (e.g. an org-wide OAuth client) can stay in env vars
-    while only ``instance_url`` varies per entry.
+    Split out from :func:`load_instances` so the ``login`` CLI can resolve the
+    same configuration — with the same validation — without constructing HTTP
+    clients it would only throw away.
+
+    Returns ``(settings_by_name, default_name)``.
     """
     raw = json.loads(Path(path).read_text())
     if not isinstance(raw, dict) or "instances" not in raw:
@@ -108,7 +112,7 @@ def load_instances(path: Path, fallback: Settings) -> InstanceRegistry:
     if default_name not in entries:
         raise ValueError(f"{path}: default '{default_name}' is not in instances {list(entries)}")
 
-    clients: dict[str, ServiceNowClient] = {}
+    resolved: dict[str, Settings] = {}
     for name, overrides in entries.items():
         if not isinstance(overrides, dict):
             raise ValueError(f"{path}: instance '{name}' must be an object")
@@ -117,6 +121,28 @@ def load_instances(path: Path, fallback: Settings) -> InstanceRegistry:
             raise ValueError(
                 f"{path}: instance '{name}' has no instance_url (set it per-entry or via SN_INSTANCE_URL)"
             )
-        clients[name] = ServiceNowClient(settings)
+        if settings.auth_method == "oauth_authorization_code" and not settings.client_id:
+            # A missing client_id is a config error and cannot be recovered from at
+            # runtime, so fail at startup like instance_url does. A missing *token*
+            # is different — that is fixed by running `login`, so it stays a warning.
+            raise ValueError(
+                f"{path}: instance '{name}' uses oauth_authorization_code but has no "
+                "client_id (set it per-entry or via SN_CLIENT_ID)"
+            )
+        resolved[name] = settings
 
+    return resolved, default_name
+
+
+def load_instances(path: Path, fallback: Settings) -> InstanceRegistry:
+    """Load ``instances.json`` and build a client per entry.
+
+    ``fallback`` supplies defaults for any field a per-instance entry omits, so
+    shared credentials (e.g. an org-wide OAuth client) can stay in env vars
+    while only ``instance_url`` varies per entry.
+    """
+    resolved, default_name = load_instance_settings(path, fallback)
+    clients = {
+        name: ServiceNowClient(settings, instance_name=name) for name, settings in resolved.items()
+    }
     return InstanceRegistry(clients=clients, default_name=default_name)

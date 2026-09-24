@@ -45,6 +45,52 @@ def test_merge_rejects_unknown_fields() -> None:
         _merge(fallback, {"not_a_real_field": "x"})
 
 
+def test_merge_accepts_authorization_code_fields() -> None:
+    """The new per-instance OAuth fields must be in _OVERRIDABLE_FIELDS."""
+    fallback = Settings(  # type: ignore[call-arg]
+        instance_url="https://shared.service-now.com", username="u", password="p"
+    )
+    merged = _merge(
+        fallback,
+        {
+            "auth_method": "oauth_authorization_code",
+            "client_id": "cid",
+            "oauth_redirect_uri": "http://127.0.0.1:9999/cb",
+            "oauth_scope": "useraccount",
+        },
+    )
+    assert merged.auth_method == "oauth_authorization_code"
+    assert merged.oauth_redirect_uri == "http://127.0.0.1:9999/cb"
+    assert merged.oauth_scope == "useraccount"
+
+
+# ── auth_method vocabulary ───────────────────────────────────────────
+
+
+def test_existing_auth_methods_still_valid() -> None:
+    """Regression guard: 'oauth' must keep meaning client credentials.
+
+    This is a released package — silently repurposing the name would break every
+    existing user's config.
+    """
+    for method in ("basic", "oauth", "oauth_authorization_code"):
+        s = Settings(instance_url="https://x.service-now.com", auth_method=method)  # type: ignore[call-arg,arg-type]
+        assert s.auth_method == method
+
+
+def test_unknown_auth_method_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        Settings(instance_url="https://x.service-now.com", auth_method="magic")  # type: ignore[call-arg,arg-type]
+
+
+def test_authorization_code_defaults_are_loopback_and_unscoped() -> None:
+    s = Settings(instance_url="https://x.service-now.com")  # type: ignore[call-arg]
+    assert s.oauth_redirect_uri == "http://127.0.0.1:8765/callback"
+    assert "localhost" not in s.oauth_redirect_uri, "must be 127.0.0.1; localhost may be ::1"
+    assert s.oauth_scope == ""
+    assert s.token_store is None
+
+
 # ── load_instances ───────────────────────────────────────────────────
 
 
@@ -101,6 +147,75 @@ def test_load_instances_rejects_missing_instance_url(tmp_path: Path) -> None:
     path = _write(tmp_path, {"instances": {"prod": {"username": "x"}}})
     with pytest.raises(ValueError, match="no instance_url"):
         load_instances(path, fallback=fallback)
+
+
+def test_load_instances_rejects_authorization_code_without_client_id(tmp_path: Path) -> None:
+    """A missing client_id is unrecoverable at runtime, so it must fail at startup."""
+    fallback = Settings(instance_url="", username="u", password="p")  # type: ignore[call-arg]
+    path = _write(
+        tmp_path,
+        {
+            "instances": {
+                "acme-dev": {
+                    "instance_url": "https://acmedev.service-now.com",
+                    "auth_method": "oauth_authorization_code",
+                }
+            }
+        },
+    )
+    with pytest.raises(ValueError, match=r"no.*client_id"):
+        load_instances(path, fallback=fallback)
+
+
+def test_load_instances_accepts_authorization_code_without_a_stored_token(
+    tmp_path: Path,
+) -> None:
+    """A missing *token* must NOT block startup — it is fixed by running `login`.
+
+    Startup has to survive it, otherwise one un-logged-in instance takes down the
+    server for every other configured instance too.
+    """
+    fallback = Settings(instance_url="", username="u", password="p")  # type: ignore[call-arg]
+    path = _write(
+        tmp_path,
+        {
+            "instances": {
+                "acme-dev": {
+                    "instance_url": "https://acmedev.service-now.com",
+                    "auth_method": "oauth_authorization_code",
+                    "client_id": "cid",
+                }
+            }
+        },
+    )
+    registry = load_instances(path, fallback=fallback)
+    assert registry.names() == ["acme-dev"]
+
+
+def test_load_instances_mixes_auth_methods_across_entries(tmp_path: Path) -> None:
+    """Adding an authcode instance must not disturb an existing basic one."""
+    fallback = Settings(instance_url="", username="u", password="p")  # type: ignore[call-arg]
+    path = _write(
+        tmp_path,
+        {
+            "default": "pdi",
+            "instances": {
+                "acme-dev": {
+                    "instance_url": "https://acmedev.service-now.com",
+                    "auth_method": "oauth_authorization_code",
+                    "client_id": "cid",
+                },
+                "pdi": {
+                    "instance_url": "https://dev12345.service-now.com",
+                    "auth_method": "basic",
+                },
+            },
+        },
+    )
+    registry = load_instances(path, fallback=fallback)
+    assert registry.client_for("acme-dev").settings.auth_method == "oauth_authorization_code"
+    assert registry.client_for("pdi").settings.auth_method == "basic"
+    assert registry.default_name == "pdi"
 
 
 def test_load_instances_rejects_default_not_in_instances(tmp_path: Path) -> None:

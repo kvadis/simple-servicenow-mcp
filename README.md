@@ -86,17 +86,61 @@ Set environment variables (or copy `.env.example` to `.env`):
 
 ```bash
 SN_INSTANCE_URL=https://your-instance.service-now.com
-SN_AUTH_METHOD=basic           # or "oauth"
+SN_AUTH_METHOD=basic           # "basic" | "oauth" | "oauth_authorization_code"
 SN_USERNAME=admin
 SN_PASSWORD=your-password
 
-# OAuth (alternative)
+# OAuth client credentials — a service identity
 # SN_AUTH_METHOD=oauth
 # SN_CLIENT_ID=your-client-id
 # SN_CLIENT_SECRET=your-client-secret
+
+# OAuth authorization code + PKCE — browser login, no stored password
+# SN_AUTH_METHOD=oauth_authorization_code
+# SN_CLIENT_ID=your-client-id
+# SN_OAUTH_REDIRECT_URI=http://127.0.0.1:8765/callback
 ```
 
 See [`.env.example`](.env.example) for the full set: pagination, retries, logging, multi-instance, read-only, tool packages.
+
+### Browser login (`oauth_authorization_code`)
+
+Use this when you would rather not keep a password in `.env`. You authorise once in a
+browser; the server then works from a stored refresh token. **If the instance has SSO
+configured, `/oauth_auth.do` redirects to your IdP** — so the login goes through SSO and
+MFA. On an instance with no IdP attached you simply get the ServiceNow login form; the
+benefit of not storing a password still holds, and no code changes when an IdP arrives.
+
+**1. Register the client in ServiceNow** — *System OAuth > Application Registry > New >
+"Create an OAuth API endpoint for external clients"*:
+
+| Field | Value |
+| --- | --- |
+| Redirect URL | `http://127.0.0.1:8765/callback` — must match exactly. Multiple URLs can be listed one per line |
+| Public Client | tick it if your release offers it, and skip the client secret entirely (PKCE secures the exchange) |
+
+**2. Configure and log in:**
+
+```bash
+simple-servicenow-mcp login                       # single-instance
+simple-servicenow-mcp login --instance acme-dev   # multi-instance
+simple-servicenow-mcp auth-status                 # what is stored, and when it expires
+simple-servicenow-mcp logout                      # drop the stored tokens
+```
+
+Run these **from the same directory, with the same environment, as the server**. `.env`
+and a relative `SN_INSTANCES_FILE=./instances.json` resolve against the current
+directory. Started from elsewhere, the CLI reads a different configuration and writes the
+token under a different key — and the server keeps reporting "no stored token".
+
+No browser on the box, or the admin would only register ServiceNow's own
+`oauth_redirect.do`? Use `simple-servicenow-mcp login --paste` and paste the code (or the whole
+redirect URL) back into the terminal.
+
+Tokens live in `~/.config/simple-servicenow-mcp/tokens.json` (`0600`, in a `0700`
+directory), keyed by instance host + client id. **The refresh token is stored in
+plaintext** — the same trust you already place in a password sitting in `.env`, but worth
+knowing. Deleting the file simply means logging in again.
 
 ### Claude Desktop
 

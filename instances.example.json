@@ -15,6 +15,12 @@
     },
     "test": {
       "instance_url": "https://acmetest.service-now.com"
+    },
+    "sso-dev": {
+      "instance_url": "https://acmesso.service-now.com",
+      "auth_method": "oauth_authorization_code",
+      "client_id": "your-public-client-id",
+      "oauth_redirect_uri": "http://127.0.0.1:8765/callback"
     }
   }
 }

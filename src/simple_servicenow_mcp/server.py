@@ -59,7 +59,7 @@ class AppContext:
 @asynccontextmanager
 async def lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Initialise the ServiceNow client on startup, close on shutdown."""
-    settings = Settings()  # type: ignore[call-arg]
+    settings = Settings()
     setup_logging(level=settings.log_level, fmt=settings.log_format)
     log = logging.getLogger(__name__)
 
@@ -131,6 +131,10 @@ if "audit" in _selected_tool_modules:
     from .tools import audit as _audit  # noqa: F401
 
 
+#: Handled by auth_cli, not by the server's own parser.
+AUTH_SUBCOMMANDS = ("login", "logout", "auth-status")
+
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="simple-servicenow-mcp")
     parser.add_argument(
@@ -161,6 +165,16 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point — runs the MCP server over stdio or HTTP."""
     import os
+
+    # Auth subcommands are dispatched before argparse: the server's parser has no
+    # subparsers and would reject a bare `login`. Keeping one console script means
+    # the same launch command — and the cwd it sets up for .env — works for both.
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv and argv[0] in AUTH_SUBCOMMANDS:
+        from .auth_cli import main as auth_main
+
+        raise SystemExit(auth_main(argv))
 
     args = _parse_args(argv)
     if args.read_only:

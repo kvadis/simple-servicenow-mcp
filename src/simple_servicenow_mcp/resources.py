@@ -6,7 +6,7 @@ import json
 
 from mcp.server.fastmcp import Context
 
-from .client import ServiceNowAPIError
+from .client import ServiceNowAPIError, ServiceNowClient
 from .server import AppContext, mcp
 
 
@@ -24,21 +24,25 @@ async def instance_info(ctx: Context) -> str:
                 "mode": "multi-instance",
                 "default": app.registry.default_name,
                 "instances": {
-                    name: {
-                        "url": client.settings.instance_url,
-                        "auth_method": client.settings.auth_method,
-                    }
-                    for name, client in app.registry.clients.items()
+                    name: _describe_client(client) for name, client in app.registry.clients.items()
                 },
             }
         )
-    return json.dumps(
-        {
-            "mode": "single-instance",
-            "url": app.settings.instance_url,
-            "auth_method": app.settings.auth_method,
-        }
-    )
+    info = _describe_client(app.client)
+    info["mode"] = "single-instance"
+    return json.dumps(info)
+
+
+def _describe_client(client: ServiceNowClient) -> dict[str, object]:
+    """Connection facts for one instance, secrets omitted."""
+    info: dict[str, object] = {
+        "url": client.settings.instance_url,
+        "auth_method": client.settings.auth_method,
+    }
+    token = client.token_status()
+    if token is not None:
+        info["token"] = token
+    return info
 
 
 @mcp.resource("servicenow://health")
@@ -60,14 +64,16 @@ async def health(ctx: Context) -> str:
             }
         )
     except ServiceNowAPIError as e:
-        return json.dumps(
-            {
-                "status": "error",
-                "code": e.status,
-                "message": e.message,
-                "detail": e.detail,
-            }
-        )
+        payload: dict[str, object] = {
+            "status": "error",
+            "code": e.status,
+            "message": e.message,
+            "detail": e.detail,
+        }
+        token = app.client.token_status()
+        if token is not None:
+            payload["token"] = token
+        return json.dumps(payload)
     except Exception as e:  # network failures, DNS, etc.
         return json.dumps({"status": "error", "message": str(e)})
 

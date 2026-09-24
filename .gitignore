@@ -59,3 +59,6 @@ research/
 
 # Personal dev launcher (hardcodes .venv path)
 run.sh
+
+# Local audit scratch helpers (hardcode local paths)
+.audit_helper/

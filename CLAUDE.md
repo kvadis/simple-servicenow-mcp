@@ -31,6 +31,9 @@ simple-servicenow-mcp                                  # Stdio (default — for 
 simple-servicenow-mcp --transport http --port 8000     # Streamable HTTP (remote/multi-client)
 simple-servicenow-mcp --transport sse                  # SSE (legacy transport)
 simple-servicenow-mcp --read-only                      # Refuse all mutations (gated by AppContext.ensure_writable)
+simple-servicenow-mcp login [--instance NAME] [--paste]  # Browser login for SN_AUTH_METHOD=oauth_authorization_code
+simple-servicenow-mcp auth-status [--instance NAME]    # Stored token state + expiry
+simple-servicenow-mcp logout [--instance NAME] [--access-only]  # Drop tokens (--access-only keeps the refresh token)
 python -m simple_servicenow_mcp.server                 # Run directly
 mcp dev src/simple_servicenow_mcp/server.py            # MCP Inspector — interactive tool testing
 pytest -q                                              # Default — skips WIP test files (CI-equivalent)
@@ -44,9 +47,12 @@ python -m build                                        # Build wheel + sdist int
 | Var | Purpose |
 | --- | --- |
 | `SN_INSTANCE_URL` | ServiceNow URL (single-instance mode) |
-| `SN_AUTH_METHOD` | `basic` (default) or `oauth` |
+| `SN_AUTH_METHOD` | `basic` (default), `oauth` (client credentials), or `oauth_authorization_code` (browser login + PKCE) |
 | `SN_USERNAME` / `SN_PASSWORD` | Basic auth credentials |
-| `SN_CLIENT_ID` / `SN_CLIENT_SECRET` | OAuth 2.0 client credentials |
+| `SN_CLIENT_ID` / `SN_CLIENT_SECRET` | OAuth client id/secret. Secret is omitted for a Public Client using PKCE |
+| `SN_OAUTH_REDIRECT_URI` | Authorization-code redirect (default `http://127.0.0.1:8765/callback`). Must match the Application Registry entry exactly; **127.0.0.1, not localhost** — macOS may resolve localhost to `::1` |
+| `SN_OAUTH_SCOPE` | Optional OAuth scope; usually blank |
+| `SN_TOKEN_STORE` | Token store path (default `~/.config/simple-servicenow-mcp/tokens.json`, `0600`) |
 | `SN_API_TIMEOUT` | HTTP timeout in **seconds** (default 30) |
 | `SN_DEFAULT_PAGE_SIZE` / `SN_MAX_PAGE_SIZE` | Pagination clamps |
 | `SN_MAX_RETRIES` / `SN_RETRY_BASE_DELAY` / `SN_RETRY_MAX_DELAY` | Retry behaviour for 429/5xx/network |
@@ -146,7 +152,9 @@ tests/
 - Encoded queries: `^` as AND, `^OR` as OR (e.g. `active=true^priority=1`)
 - `sysparm_display_value=true` returns human-readable values; `false` (default in this MCP) returns raw sys_ids
 - Always paginate with `limit` + `offset`, never dump all records
-- For docs, use Context7 (`mcp__plugin_context7_context7`) with library ID `/websites/servicenow_bundle_yokohama-api-reference`
+- **Docs sources** (use both, depending on topic):
+  - **Context7** (`mcp__plugin_context7_context7`) with library ID `/websites/servicenow_bundle_yokohama-api-reference` — fast, indexed, Yokohama release, API-only (122k snippets).
+  - **`ServiceNow/ServiceNowDocs` on GitHub** (branch `australia`) — official LLM-optimized markdown, Australia release (newer), broader than Context7. Use for AI Agents / Now Assist / AIA / Workflow / non-API topics. Access via `gh api repos/ServiceNow/ServiceNowDocs/contents/markdown/<section>` then raw download URL. Key sections: `markdown/api-reference/`, `markdown/now-platform/`, `markdown/intelligent-experiences/`, `markdown/release-notes/`.
 
 ## Testing Conventions
 
