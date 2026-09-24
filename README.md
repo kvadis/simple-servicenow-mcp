@@ -168,7 +168,7 @@ The server starts read-only. To let the client create, update or delete records,
 
 ### Cursor / VS Code / Claude Code
 
-The same `command + args + env` shape works in any MCP client. Point at the `simple-servicenow-mcp` executable on `PATH`, or use `uvx` / `python -m simple_servicenow_mcp.server`.
+The same `command + args + env` shape works in any MCP client. Point at the `simple-servicenow-mcp` executable on `PATH`, or use `uvx` / `python -m simple_servicenow_mcp`.
 
 ---
 
@@ -498,7 +498,7 @@ pip install -e ".[dev]"
 pre-commit install                       # ruff format + check + mypy on commit
 pytest                                   # owned tests (no network required)
 ruff check . && ruff format --check .    # what CI enforces
-mcp dev src/simple_servicenow_mcp/server.py   # MCP Inspector — interactive tool testing
+npx @modelcontextprotocol/inspector .venv/bin/simple-servicenow-mcp   # MCP Inspector
 ```
 
 Tests use an in-process `FakeServiceNowClient` (`tests/conftest.py`) — no real instance needed.

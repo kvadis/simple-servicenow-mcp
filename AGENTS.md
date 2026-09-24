@@ -38,8 +38,8 @@ simple-servicenow-mcp --read-write                     # Allow mutations (read-o
 simple-servicenow-mcp login [--instance NAME] [--paste]  # Browser login for SN_AUTH_METHOD=oauth_authorization_code
 simple-servicenow-mcp auth-status [--instance NAME]    # Stored token state + expiry
 simple-servicenow-mcp logout [--instance NAME] [--access-only]  # Drop tokens (--access-only keeps the refresh token)
-python -m simple_servicenow_mcp.server                 # Run directly
-mcp dev src/simple_servicenow_mcp/server.py            # MCP Inspector — interactive tool testing
+python -m simple_servicenow_mcp                        # Run directly (same as the console script)
+npx @modelcontextprotocol/inspector .venv/bin/simple-servicenow-mcp  # MCP Inspector — interactive tool testing
 pytest -q                                              # Default — skips WIP test files (CI-equivalent)
 pytest -q --run-wip                                    # Include red-state TDD tests for features in flight
 ruff check . && ruff format --check .                  # What CI enforces

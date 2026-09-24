@@ -35,8 +35,10 @@ they're the work signal for whoever's implementing them. CI runs without
 Optional but recommended: interactively test changes via the MCP Inspector against a [PDI](https://developer.servicenow.com) (personal developer instance):
 
 ```bash
-mcp dev src/simple_servicenow_mcp/server.py
+npx @modelcontextprotocol/inspector .venv/bin/simple-servicenow-mcp
 ```
+
+Run it from the repo root so the server picks up your `.env`. (`mcp dev server.py` doesn't work here: it loads the file outside its package, so the relative imports fail.)
 
 ## Style
 

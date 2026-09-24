@@ -210,4 +210,9 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # `python -m simple_servicenow_mcp.server` runs this file as __main__, a second
+    # copy of the module. Tools, prompts and resources registered on the importable
+    # copy's `mcp`, so start that one; this copy's `mcp` is empty.
+    from simple_servicenow_mcp.server import main as _main
+
+    _main()

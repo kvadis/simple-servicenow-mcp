@@ -6,7 +6,9 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- **`python -m simple_servicenow_mcp.server` served no tools, prompts or resources.** Run that way, Python loads `server.py` twice, and everything registered on the copy that wasn't serving. It now starts the right copy, and `python -m simple_servicenow_mcp` works too (new `__main__.py`). The console script and Docker image were not affected.
+- **The documented `mcp dev src/simple_servicenow_mcp/server.py` failed with an ImportError** (it loads the file outside its package). The docs now use `npx @modelcontextprotocol/inspector simple-servicenow-mcp`.
 
 ## [0.2.1] — 2026-09-24
 
