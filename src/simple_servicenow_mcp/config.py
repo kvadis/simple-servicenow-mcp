@@ -104,6 +104,18 @@ class Settings(BaseSettings):
     log_format: Literal["text", "json"] = Field(default="text", description="Log format")
 
     # HTTP transport
+    http_auth: Literal["none", "oauth"] = Field(
+        default="none",
+        description="'oauth' makes --transport http require an access token from the identity "
+        "provider at SN_HTTP_AUTH_ISSUER. Ignored on stdio.",
+    )
+    http_auth_issuer: str = Field(
+        default="", description="Issuer URL of the identity provider that signs access tokens"
+    )
+    http_auth_resource_url: str = Field(
+        default="",
+        description="Public URL of this server's MCP endpoint, e.g. https://mcp.example.com/mcp",
+    )
     http_allowed_hosts: str = Field(
         default="",
         description="Comma-separated Host names the HTTP transport accepts besides loopback, "

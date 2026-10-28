@@ -228,7 +228,33 @@ def main(argv: list[str] | None = None) -> None:
         mcp.run(transport="stdio")
         return
 
-    security = _transport_security(Settings())
+    settings = Settings()
+    setup_logging(level=settings.log_level, fmt=settings.log_format)
+    if settings.http_auth == "oauth":
+        if args.transport != "http":
+            # The SDK client checks that the protected-resource URL matches the URL it
+            # connected to, and the SSE endpoint is not the MCP endpoint.
+            raise SystemExit("SN_HTTP_AUTH=oauth works with --transport http only, not sse.")
+        missing = [
+            name
+            for name, value in (
+                ("SN_HTTP_AUTH_ISSUER", settings.http_auth_issuer),
+                ("SN_HTTP_AUTH_RESOURCE_URL", settings.http_auth_resource_url),
+            )
+            if not value
+        ]
+        if missing:
+            raise SystemExit(f"SN_HTTP_AUTH=oauth needs {' and '.join(missing)}.")
+    elif args.host not in ("127.0.0.1", "localhost", "::1"):
+        logging.getLogger(__name__).warning(
+            "server.http_unauthenticated: anyone who can reach %s:%s can use the server; "
+            "set SN_HTTP_AUTH=oauth to require sign-in",
+            args.host,
+            args.port,
+            extra={"host": args.host, "port": args.port},
+        )
+
+    security = _transport_security(settings)
     if security is not None:
         mcp.settings.transport_security = security
     mcp.settings.host = args.host

@@ -86,3 +86,48 @@ async def test_allowed_host_with_its_own_origin_is_accepted(served, monkeypatch)
     server.main(["--transport", "http", "--host", "0.0.0.0"])
 
     assert await _post_initialize("mcp.example.com", origin="https://mcp.example.com") == 200
+
+
+# ── Startup: OAuth settings and the exposure warning ─────────────────────
+
+
+def test_oauth_without_issuer_stops_with_the_variable_named(served, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH", "oauth")
+    monkeypatch.setenv("SN_HTTP_AUTH_RESOURCE_URL", "https://mcp.example.com/mcp")
+
+    with pytest.raises(SystemExit, match="SN_HTTP_AUTH_ISSUER"):
+        server.main(["--transport", "http"])
+    assert served == []
+
+
+def test_oauth_without_resource_url_stops_with_the_variable_named(served, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH", "oauth")
+    monkeypatch.setenv("SN_HTTP_AUTH_ISSUER", "https://idp.example.com")
+
+    with pytest.raises(SystemExit, match="SN_HTTP_AUTH_RESOURCE_URL"):
+        server.main(["--transport", "http"])
+    assert served == []
+
+
+def test_oauth_on_the_sse_transport_is_refused(served, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH", "oauth")
+    monkeypatch.setenv("SN_HTTP_AUTH_ISSUER", "https://idp.example.com")
+    monkeypatch.setenv("SN_HTTP_AUTH_RESOURCE_URL", "https://mcp.example.com/mcp")
+
+    with pytest.raises(SystemExit, match="--transport http"):
+        server.main(["--transport", "sse"])
+    assert served == []
+
+
+def test_unauthenticated_http_on_a_public_interface_warns(served, capsys) -> None:
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    err = capsys.readouterr().err
+    assert "server.http_unauthenticated" in err
+    assert "SN_HTTP_AUTH" in err
+
+
+def test_unauthenticated_http_on_loopback_does_not_warn(served, capsys) -> None:
+    server.main(["--transport", "http", "--host", "127.0.0.1"])
+
+    assert "server.http_unauthenticated" not in capsys.readouterr().err
