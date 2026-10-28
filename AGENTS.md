@@ -152,6 +152,7 @@ tests/
 7. If creating a new tools module: register it in `packages.py` (`PACKAGES` dict) and `server.py` (conditional import block)
 8. Add behavioural tests in `tests/test_<module>.py` using the existing `FakeServiceNowClient`
 9. Document in `docs/tools.md` (and the package count in `docs/configuration.md` if it changes) and `CHANGELOG.md` under `[Unreleased]`; `tests/test_docs.py` checks both
+10. If the tool answers a review job, add it to the Routing table in `skills/servicenow-review/SKILL.md`; `tests/test_docs.py` checks that every tool named there exists
 
 ## ServiceNow API Notes
 

@@ -104,3 +104,23 @@ def test_readme_links_are_absolute_so_they_work_on_pypi() -> None:
     relative = re.findall(r"\]\((?!https?://|#)([^)]+)\)", readme)
 
     assert not relative, f"PyPI can't resolve relative links: {relative}"
+
+
+def test_agent_skill_routes_only_to_real_tools() -> None:
+    skill = (ROOT / "skills" / "servicenow-review" / "SKILL.md").read_text()
+    frontmatter = skill.split("---", 2)[1]
+    routing = skill.split("\n## Routing\n", 1)[1].split("\n## ", 1)[0]
+    rows = [line for line in routing.splitlines() if line.startswith("| ") and "---" not in line]
+    named = {
+        name
+        for row in rows[1:]
+        for cell in row.split("|")[2:]
+        for name in re.findall(r"`(\w+)`", cell)
+    }
+
+    assert re.search(r"^name: servicenow-review$", frontmatter, re.M)
+    assert re.search(r"^description: \S", frontmatter, re.M)
+    assert named, "no tools found in the Routing table"
+    assert named <= set(_inventory("all").tools), (
+        f"unknown tools: {named - set(_inventory('all').tools)}"
+    )

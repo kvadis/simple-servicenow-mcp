@@ -6,7 +6,8 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **`servicenow-review` agent skill** (`skills/servicenow-review/SKILL.md`). It tells Claude Code, and other agents that read the Agent Skills format, which tool fits which review job, how to read a report's limits (`truncated`, `{"error"}`, `out_of_scope`), how to cite each finding, and the ServiceNow query gotchas (a filter on an unknown field matches every row; `^OR` binding; stored choice values). Install steps are in `docs/configuration.md`. `tests/test_docs.py` checks that every tool the skill names exists.
 
 ## [0.2.2] — 2026-09-24
 
