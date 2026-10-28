@@ -66,6 +66,11 @@ records. Beyond a PDI, use a dedicated low-privilege user or OAuth browser login
 VS Code, Docker and other setups are in
 [Configuration](https://github.com/kvadis/simple-servicenow-mcp/blob/main/docs/configuration.md).
 
+For Claude Code and other agents that read skills, the
+[`servicenow-review` skill](https://github.com/kvadis/simple-servicenow-mcp/tree/main/skills/servicenow-review)
+tells the agent which tool fits which review and how to report the findings
+([install it](https://github.com/kvadis/simple-servicenow-mcp/blob/main/docs/configuration.md#agent-skill)).
+
 ## Ask things like
 
 - *"Is the x_acme_hr scope ready for the next upgrade? What would block it?"*

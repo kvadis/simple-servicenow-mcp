@@ -89,6 +89,25 @@ the password instead of storing it:
 To allow writes, add `"--read-write"` after `"simple-servicenow-mcp"` in `args`
 (see [Read-only mode](#read-only-mode)).
 
+## Agent skill
+
+[`skills/servicenow-review`](../skills/servicenow-review/SKILL.md) is an agent
+skill: it tells the agent which tool fits which review, how to read a report's
+limits (`truncated`, `out_of_scope`), how to cite findings, and the query
+gotchas that make ServiceNow return the wrong rows. It works in Claude Code and
+in other agents that read the Agent Skills `SKILL.md` format.
+
+Install it for every project:
+
+```bash
+mkdir -p ~/.claude/skills/servicenow-review
+curl -fsSL https://raw.githubusercontent.com/kvadis/simple-servicenow-mcp/main/skills/servicenow-review/SKILL.md \
+  -o ~/.claude/skills/servicenow-review/SKILL.md
+```
+
+Or for one project only, save it as `.claude/skills/servicenow-review/SKILL.md`
+in that project.
+
 ## Environment variables
 
 All settings use the `SN_` prefix and can also live in a `.env` file in the
