@@ -18,13 +18,19 @@ from urllib.parse import urlsplit
 import httpx
 import jwt
 from mcp.server.auth.provider import AccessToken
+from mcp.server.auth.routes import build_resource_metadata_url, cors_middleware
 from mcp.server.auth.settings import AuthSettings
+from mcp.shared.auth import ProtectedResourceMetadata
 from pydantic import AnyHttpUrl
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 from .config import Settings, split_csv
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
+    from starlette.applications import Starlette
 
 logger = logging.getLogger(__name__)
 
@@ -187,4 +193,37 @@ def configure_http_auth(
         audiences=split_csv(settings.http_auth_audience) or [settings.http_auth_resource_url],
         jwks_url=settings.http_auth_jwks_url or None,
         transport=transport,
+    )
+
+    # The SDK serves the protected-resource metadata through pydantic URL types,
+    # which append "/" to a URL with no path; clients compare the issuer and the
+    # resource character for character. Serve the exact strings in front of it.
+    route = _exact_resource_metadata_route(settings)
+    build_app = type(mcp).streamable_http_app  # the class's, so re-configuring never nests
+
+    def streamable_http_app() -> Starlette:
+        app = build_app(mcp)
+        app.router.routes.insert(0, route)
+        return app
+
+    mcp.streamable_http_app = streamable_http_app  # type: ignore[method-assign]
+
+
+def _exact_resource_metadata_route(settings: Settings) -> Route:
+    resource = AnyHttpUrl(settings.http_auth_resource_url)
+    metadata = ProtectedResourceMetadata(
+        resource=resource,
+        authorization_servers=[AnyHttpUrl(settings.http_auth_issuer)],
+        scopes_supported=split_csv(settings.http_auth_required_scopes) or None,
+    )
+    document = metadata.model_dump(mode="json", exclude_none=True)
+    document["resource"] = settings.http_auth_resource_url
+    document["authorization_servers"] = [settings.http_auth_issuer]
+
+    async def handle(request: Request) -> JSONResponse:
+        return JSONResponse(document, headers={"Cache-Control": "public, max-age=3600"})
+
+    path = urlsplit(str(build_resource_metadata_url(resource))).path
+    return Route(
+        path, endpoint=cors_middleware(handle, ["GET", "OPTIONS"]), methods=["GET", "OPTIONS"]
     )

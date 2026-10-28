@@ -56,6 +56,7 @@ def served(monkeypatch) -> Iterator[list[str]]:
     mcp.settings = saved_settings
     mcp._token_verifier = saved_verifier
     mcp._session_manager = None
+    vars(mcp).pop("streamable_http_app", None)  # configure_http_auth wraps it
 
 
 async def _request(
@@ -266,3 +267,14 @@ def test_plain_http_issuer_on_loopback_is_allowed_for_testing(oauth, monkeypatch
     server.main(["--transport", "http"])
 
     assert oauth is not None and server.mcp.settings.auth is not None
+
+
+async def test_metadata_repeats_a_bare_host_issuer_exactly(oauth, monkeypatch) -> None:
+    """Pydantic URL types append '/' to a URL with no path, but clients compare the
+    issuer character for character (Zitadel and Okta's org server use bare hosts)."""
+    monkeypatch.setenv("SN_HTTP_AUTH_ISSUER", "https://idp.example.com")
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    response = await _request("GET", "/.well-known/oauth-protected-resource/mcp", "mcp.example.com")
+
+    assert response.json()["authorization_servers"] == ["https://idp.example.com"]
