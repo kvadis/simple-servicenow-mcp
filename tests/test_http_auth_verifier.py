@@ -6,6 +6,7 @@ signed with an RSA key generated here.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -33,24 +34,39 @@ def _jwk(key: rsa.RSAPrivateKey, kid: str) -> dict[str, Any]:
 
 
 class FakeIdP:
-    """Discovery + JWKS endpoints; records every request path."""
+    """Discovery + JWKS endpoints; records every request path.
 
-    def __init__(self, keys: list[dict[str, Any]] | None = None, issuer: str = ISSUER) -> None:
+    `discovery_path` is where the metadata lives; `keys_status` lets a test make
+    the JWKS endpoint fail.
+    """
+
+    def __init__(
+        self,
+        keys: list[dict[str, Any]] | None = None,
+        issuer: str = ISSUER,
+        discovery_path: str = "/.well-known/openid-configuration",
+    ) -> None:
         self.keys = keys if keys is not None else [_jwk(_KEY, "k1")]
         self.issuer = issuer
+        self.discovery_path = discovery_path
+        self.keys_status = 200
         self.paths: list[str] = []
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.paths.append(request.url.path)
-        if request.url.path == "/.well-known/openid-configuration":
+        if request.url.path == self.discovery_path:
             return httpx.Response(200, json={"issuer": self.issuer, "jwks_uri": f"{ISSUER}/keys"})
         if request.url.path == "/keys":
-            return httpx.Response(200, json={"keys": self.keys})
+            return httpx.Response(self.keys_status, json={"keys": self.keys})
         return httpx.Response(404)
 
     @property
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self.handle)
+
+    @property
+    def key_fetches(self) -> int:
+        return self.paths.count("/keys")
 
 
 def _claims(overrides: dict[str, Any], drop: str | None = None) -> dict[str, Any]:
@@ -79,10 +95,18 @@ def _mint(
     return jwt.encode(_claims(claims, drop), key, algorithm=alg, headers={"kid": kid})
 
 
-def _verifier(idp: FakeIdP, **kwargs: Any):
+def _verifier(idp: FakeIdP, issuer: str = ISSUER, **kwargs: Any):
     from simple_servicenow_mcp.http_auth import JwtTokenVerifier
 
-    return JwtTokenVerifier(issuer=ISSUER, audiences=[AUDIENCE], transport=idp.transport, **kwargs)
+    return JwtTokenVerifier(issuer=issuer, audiences=[AUDIENCE], transport=idp.transport, **kwargs)
+
+
+class Clock:
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
 
 
 async def test_valid_token_becomes_an_access_token() -> None:
@@ -186,3 +210,132 @@ async def test_symmetric_keys_in_the_jwks_are_not_used() -> None:
     token = jwt.encode(_claims({}), secret, algorithm="HS256", headers={"kid": "h1"})
 
     assert await _verifier(idp).verify_token(token) is None
+
+
+# ── Scopes and client id across identity providers ───────────────────────
+
+
+@pytest.mark.parametrize(
+    ("overrides", "drop", "scopes"),
+    [
+        pytest.param(
+            {"scp": "mcp.read mcp.write"}, "scope", ["mcp.read", "mcp.write"], id="entra-scp-string"
+        ),
+        pytest.param({"scp": ["mcp.read"]}, "scope", ["mcp.read"], id="okta-scp-list"),
+        pytest.param({"scope": "a b", "scp": ["b", "c"]}, None, ["a", "b", "c"], id="both-merged"),
+    ],
+)
+async def test_scopes_are_read_from_scope_and_scp(
+    overrides: dict[str, Any], drop: str | None, scopes: list[str]
+) -> None:
+    access = await _verifier(FakeIdP()).verify_token(_mint(overrides, drop=drop))
+
+    assert access is not None
+    assert access.scopes == scopes
+
+
+@pytest.mark.parametrize(
+    ("claims", "client_id"),
+    [
+        pytest.param({"client_id": "okta-app"}, "okta-app", id="client_id-claim"),
+        pytest.param({"appid": "entra-v1-app"}, "entra-v1-app", id="entra-v1-appid"),
+        pytest.param({}, "unknown", id="none"),
+    ],
+)
+async def test_client_id_falls_back_when_azp_is_absent(
+    claims: dict[str, Any], client_id: str
+) -> None:
+    access = await _verifier(FakeIdP()).verify_token(_mint(claims, drop="azp"))
+
+    assert access is not None
+    assert access.client_id == client_id
+
+
+# ── Keys: rotation, rate limit, cache lifetime, outages ──────────────────
+
+
+async def test_a_new_kid_triggers_one_refetch() -> None:
+    idp = FakeIdP()
+    verifier = _verifier(idp, clock=Clock())
+    assert await verifier.verify_token(_mint({})) is not None
+
+    idp.keys = [_jwk(_KEY, "k1"), _jwk(_OTHER_KEY, "k2")]  # the IdP rotates in a new key
+    access = await verifier.verify_token(_mint({}, kid="k2", key=_OTHER_KEY))
+
+    assert access is not None
+    assert idp.key_fetches == 2
+
+
+async def test_unknown_kids_refetch_at_most_once_a_minute() -> None:
+    idp, clock = FakeIdP(), Clock()
+    verifier = _verifier(idp, clock=clock)
+    await verifier.verify_token(_mint({}))
+
+    await verifier.verify_token(_mint({}, kid="nope-1"))
+    await verifier.verify_token(_mint({}, kid="nope-2"))
+    assert idp.key_fetches == 2  # the first unknown kid refetched, the second did not
+
+    clock.now += 61
+    await verifier.verify_token(_mint({}, kid="nope-3"))
+    assert idp.key_fetches == 3
+
+
+async def test_keys_are_refreshed_after_ten_minutes() -> None:
+    idp, clock = FakeIdP(), Clock()
+    verifier = _verifier(idp, clock=clock)
+    await verifier.verify_token(_mint({}))
+
+    clock.now += 599
+    await verifier.verify_token(_mint({}))
+    assert idp.key_fetches == 1
+
+    clock.now += 2
+    await verifier.verify_token(_mint({}))
+    assert idp.key_fetches == 2
+
+
+async def test_a_failed_refetch_keeps_the_known_keys() -> None:
+    idp, clock = FakeIdP(), Clock()
+    verifier = _verifier(idp, clock=clock)
+    await verifier.verify_token(_mint({}))
+
+    idp.keys_status = 503
+    clock.now += 601
+    assert await verifier.verify_token(_mint({})) is not None
+
+
+async def test_concurrent_unknown_kids_share_one_refetch() -> None:
+    idp = FakeIdP()
+    verifier = _verifier(idp, clock=Clock())
+    await verifier.verify_token(_mint({}))
+
+    await asyncio.gather(*(verifier.verify_token(_mint({}, kid=f"nope-{i}")) for i in range(5)))
+
+    assert idp.key_fetches == 2
+
+
+# ── Discovery URL shapes ──────────────────────────────────────────────────
+
+
+async def test_issuer_with_a_trailing_slash() -> None:
+    """Auth0 issuers end in '/'; iss in the token keeps it, the URL must not double it."""
+    issuer = f"{ISSUER}/"
+    idp = FakeIdP(issuer=issuer)
+
+    access = await _verifier(idp, issuer=issuer).verify_token(_mint({"iss": issuer}))
+
+    assert access is not None
+    assert idp.paths[0] == "/.well-known/openid-configuration"
+
+
+async def test_rfc8414_discovery_inserts_well_known_before_the_issuer_path() -> None:
+    issuer = f"{ISSUER}/tenant1"
+    idp = FakeIdP(issuer=issuer, discovery_path="/.well-known/oauth-authorization-server/tenant1")
+
+    access = await _verifier(idp, issuer=issuer).verify_token(_mint({"iss": issuer}))
+
+    assert access is not None
+    assert idp.paths[:2] == [
+        "/tenant1/.well-known/openid-configuration",
+        "/.well-known/oauth-authorization-server/tenant1",
+    ]
