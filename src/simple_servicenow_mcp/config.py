@@ -102,3 +102,10 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO", description="Log level (DEBUG, INFO, WARNING, ERROR)")
     log_format: Literal["text", "json"] = Field(default="text", description="Log format")
+
+    # HTTP transport
+    http_allowed_hosts: str = Field(
+        default="",
+        description="Comma-separated Host names the HTTP transport accepts besides loopback, "
+        "e.g. mcp.example.com. Any other Host header is refused (DNS-rebinding protection).",
+    )

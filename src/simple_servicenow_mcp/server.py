@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .client import ServiceNowClient
 from .config import Settings
@@ -170,6 +171,32 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+_LOOPBACK_HOSTS = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+_LOOPBACK_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+
+
+def _csv(raw: str) -> list[str]:
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+def _transport_security(settings: Settings) -> TransportSecuritySettings | None:
+    """Host/Origin allow-list for the HTTP transports, or None to keep the SDK's.
+
+    `mcp` is constructed with the SDK's default host, so it only ever allows
+    loopback Host headers; changing `mcp.settings.host` later does not widen that.
+    """
+    hosts = _csv(settings.http_allowed_hosts)
+    if not hosts:
+        return None
+    patterns = [p for host in hosts for p in (host, f"{host}:*")]
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=_LOOPBACK_HOSTS + patterns,
+        allowed_origins=_LOOPBACK_ORIGINS
+        + [f"{scheme}://{p}" for p in patterns for scheme in ("https", "http")],
+    )
+
+
 def _read_only_from_env() -> bool:
     raw = os.environ.get("SN_READ_ONLY", "true").strip().lower()
     return raw not in ("false", "0", "no", "off", "f", "n")
@@ -199,14 +226,14 @@ def main(argv: list[str] | None = None) -> None:
     )
     if args.transport == "stdio":
         mcp.run(transport="stdio")
-    elif args.transport == "http":
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-        mcp.run(transport="streamable-http")
-    else:  # sse
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-        mcp.run(transport="sse")
+        return
+
+    security = _transport_security(Settings())
+    if security is not None:
+        mcp.settings.transport_security = security
+    mcp.settings.host = args.host
+    mcp.settings.port = args.port
+    mcp.run(transport="streamable-http" if args.transport == "http" else "sse")
 
 
 if __name__ == "__main__":
