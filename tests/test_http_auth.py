@@ -6,6 +6,7 @@ out, then exercise the Starlette app the server would have served.
 
 from __future__ import annotations
 
+import gc
 from collections.abc import Iterator
 
 import httpx
@@ -13,6 +14,13 @@ import pytest
 
 from simple_servicenow_mcp import server
 from simple_servicenow_mcp.server import mcp
+
+# mcp 1.29.1 leaves a MemoryObjectReceiveStream unclosed when a streamable-HTTP
+# session ends; a bare FastMCP() reproduces it, so it is upstream, not ours. Only
+# that warning is ignored, and only in this module.
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Exception ignored in.*MemoryObjectReceiveStream:pytest.PytestUnraisableExceptionWarning"
+)
 
 _INITIALIZE = {
     "jsonrpc": "2.0",
@@ -62,7 +70,14 @@ async def _post_initialize(host: str, origin: str | None = None) -> int:
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:8000") as c:
-            return (await c.post("/mcp", json=_INITIALIZE, headers=headers)).status_code
+            response = await c.post("/mcp", json=_INITIALIZE, headers=headers)
+            if session := response.headers.get("mcp-session-id"):
+                # End the session as a client would, so its streams are closed.
+                await c.delete("/mcp", headers={**headers, "mcp-session-id": session})
+            status = response.status_code
+    # Collect here so the SDK's stream leak (see pytestmark) lands on this test.
+    gc.collect()
+    return status
 
 
 async def test_unlisted_host_is_refused(served) -> None:
