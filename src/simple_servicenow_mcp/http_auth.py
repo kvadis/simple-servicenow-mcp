@@ -12,12 +12,19 @@ import logging
 import math
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 import httpx
 import jwt
 from mcp.server.auth.provider import AccessToken
+from mcp.server.auth.settings import AuthSettings
+from pydantic import AnyHttpUrl
+
+from .config import Settings, split_csv
+
+if TYPE_CHECKING:
+    from mcp.server.fastmcp import FastMCP
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +51,13 @@ class JwtTokenVerifier:
         *,
         issuer: str,
         audiences: list[str],
+        jwks_url: str | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._issuer = issuer
         self._audiences = audiences
+        self._jwks_url = jwks_url
         self._transport = transport
         self._clock = clock
         self._lock = asyncio.Lock()
@@ -110,7 +119,7 @@ class JwtTokenVerifier:
         """Replace the key set; on any failure keep the old keys and retry later."""
         try:
             async with httpx.AsyncClient(transport=self._transport, timeout=10) as http:
-                jwks_uri = await self._discover(http)
+                jwks_uri = self._jwks_url or await self._discover(http)
                 jwks = (await http.get(jwks_uri)).raise_for_status().json()
             keys = {}
             for data in jwks.get("keys", []):
@@ -158,3 +167,24 @@ def _scopes(claims: dict[str, Any]) -> list[str]:
             if isinstance(item, str) and item not in found:
                 found.append(item)
     return found
+
+
+def configure_http_auth(
+    mcp: FastMCP, settings: Settings, *, transport: httpx.AsyncBaseTransport | None = None
+) -> None:
+    """Require access tokens on the streamable-HTTP app `mcp` builds next.
+
+    FastMCP reads `settings.auth` and its token verifier when the app is built,
+    not in the constructor, so this works on the module-level `mcp`.
+    """
+    mcp.settings.auth = AuthSettings(
+        issuer_url=AnyHttpUrl(settings.http_auth_issuer),
+        resource_server_url=AnyHttpUrl(settings.http_auth_resource_url),
+        required_scopes=split_csv(settings.http_auth_required_scopes) or None,
+    )
+    mcp._token_verifier = JwtTokenVerifier(
+        issuer=settings.http_auth_issuer,
+        audiences=split_csv(settings.http_auth_audience) or [settings.http_auth_resource_url],
+        jwks_url=settings.http_auth_jwks_url or None,
+        transport=transport,
+    )

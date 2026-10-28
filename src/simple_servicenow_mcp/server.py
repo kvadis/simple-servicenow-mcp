@@ -9,13 +9,15 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 
 from .client import ServiceNowClient
-from .config import Settings
+from .config import Settings, split_csv
+from .http_auth import configure_http_auth
 from .instances import InstanceRegistry, load_instances
 from .logging_setup import setup_logging
 from .packages import selected_modules_from_env
@@ -171,12 +173,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+_LOOPBACK_NAMES = ("127.0.0.1", "localhost", "::1")
 _LOOPBACK_HOSTS = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
 _LOOPBACK_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
-
-
-def _csv(raw: str) -> list[str]:
-    return [part.strip() for part in raw.split(",") if part.strip()]
 
 
 def _transport_security(settings: Settings) -> TransportSecuritySettings | None:
@@ -185,7 +184,12 @@ def _transport_security(settings: Settings) -> TransportSecuritySettings | None:
     `mcp` is constructed with the SDK's default host, so it only ever allows
     loopback Host headers; changing `mcp.settings.host` later does not widen that.
     """
-    hosts = _csv(settings.http_allowed_hosts)
+    hosts = split_csv(settings.http_allowed_hosts)
+    if settings.http_auth == "oauth" and settings.http_auth_resource_url:
+        # Clients reach an OAuth-protected server by its resource URL.
+        resource_host = urlsplit(settings.http_auth_resource_url).hostname
+        if resource_host:
+            hosts.append(resource_host)
     if not hosts:
         return None
     patterns = [p for host in hosts for p in (host, f"{host}:*")]
@@ -245,7 +249,11 @@ def main(argv: list[str] | None = None) -> None:
         ]
         if missing:
             raise SystemExit(f"SN_HTTP_AUTH=oauth needs {' and '.join(missing)}.")
-    elif args.host not in ("127.0.0.1", "localhost", "::1"):
+        issuer = urlsplit(settings.http_auth_issuer)
+        if issuer.scheme != "https" and issuer.hostname not in _LOOPBACK_NAMES:
+            raise SystemExit("SN_HTTP_AUTH_ISSUER must be an https:// URL.")
+        configure_http_auth(mcp, settings)
+    elif args.host not in _LOOPBACK_NAMES:
         logging.getLogger(__name__).warning(
             "server.http_unauthenticated: anyone who can reach %s:%s can use the server; "
             "set SN_HTTP_AUTH=oauth to require sign-in",

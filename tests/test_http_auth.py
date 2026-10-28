@@ -12,7 +12,8 @@ from collections.abc import Iterator
 import httpx
 import pytest
 
-from simple_servicenow_mcp import server
+from _fake_idp import FakeIdP, mint
+from simple_servicenow_mcp import http_auth, server
 from simple_servicenow_mcp.server import mcp
 
 # mcp 1.29.1 leaves a MemoryObjectReceiveStream unclosed when a streamable-HTTP
@@ -57,7 +58,9 @@ def served(monkeypatch) -> Iterator[list[str]]:
     mcp._session_manager = None
 
 
-async def _post_initialize(host: str, origin: str | None = None) -> int:
+async def _request(
+    method: str, path: str, host: str, *, token: str | None = None, origin: str | None = None
+) -> httpx.Response:
     headers = {
         "Host": host,
         "Content-Type": "application/json",
@@ -65,19 +68,25 @@ async def _post_initialize(host: str, origin: str | None = None) -> int:
     }
     if origin:
         headers["Origin"] = origin
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     app = mcp.streamable_http_app()
     # The session manager only runs inside the app's lifespan.
     async with app.router.lifespan_context(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://127.0.0.1:8000") as c:
-            response = await c.post("/mcp", json=_INITIALIZE, headers=headers)
+            body = _INITIALIZE if method == "POST" else None
+            response = await c.request(method, path, json=body, headers=headers)
             if session := response.headers.get("mcp-session-id"):
                 # End the session as a client would, so its streams are closed.
                 await c.delete("/mcp", headers={**headers, "mcp-session-id": session})
-            status = response.status_code
     # Collect here so the SDK's stream leak (see pytestmark) lands on this test.
     gc.collect()
-    return status
+    return response
+
+
+async def _post_initialize(host: str, origin: str | None = None) -> int:
+    return (await _request("POST", "/mcp", host, origin=origin)).status_code
 
 
 async def test_unlisted_host_is_refused(served) -> None:
@@ -146,3 +155,114 @@ def test_unauthenticated_http_on_loopback_does_not_warn(served, capsys) -> None:
     server.main(["--transport", "http", "--host", "127.0.0.1"])
 
     assert "server.http_unauthenticated" not in capsys.readouterr().err
+
+
+# ── OAuth resource-server mode, end to end through main() ────────────────
+
+IDP_ISSUER = "https://idp.example.com/oauth2/default"
+RESOURCE = "https://mcp.example.com/mcp"
+
+
+@pytest.fixture
+def oauth(served, monkeypatch) -> FakeIdP:
+    """SN_HTTP_AUTH=oauth against a fake IdP; main() still does the wiring."""
+    idp = FakeIdP(
+        issuer=IDP_ISSUER, discovery_path="/oauth2/default/.well-known/openid-configuration"
+    )
+    monkeypatch.setenv("SN_HTTP_AUTH", "oauth")
+    monkeypatch.setenv("SN_HTTP_AUTH_ISSUER", IDP_ISSUER)
+    monkeypatch.setenv("SN_HTTP_AUTH_RESOURCE_URL", RESOURCE)
+    monkeypatch.setattr(
+        server,
+        "configure_http_auth",
+        lambda m, settings: http_auth.configure_http_auth(m, settings, transport=idp.transport),
+        raising=False,
+    )
+    return idp
+
+
+def _token(**overrides) -> str:
+    return mint({"iss": IDP_ISSUER, "aud": RESOURCE, **overrides})
+
+
+async def test_request_without_a_token_gets_401_naming_the_metadata(oauth) -> None:
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    response = await _request("POST", "/mcp", "mcp.example.com")
+
+    assert response.status_code == 401
+    assert (
+        'resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp"'
+        in response.headers["www-authenticate"]
+    )
+
+
+async def test_protected_resource_metadata_points_at_the_issuer(oauth, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH_REQUIRED_SCOPES", "mcp.access")
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    response = await _request("GET", "/.well-known/oauth-protected-resource/mcp", "mcp.example.com")
+
+    assert response.status_code == 200
+    document = response.json()
+    assert document["resource"] == RESOURCE
+    assert document["authorization_servers"] == [IDP_ISSUER]
+    assert document["scopes_supported"] == ["mcp.access"]
+
+
+async def test_valid_token_on_the_resource_host_initializes(oauth) -> None:
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    response = await _request("POST", "/mcp", "mcp.example.com", token=_token())
+
+    assert response.status_code == 200
+
+
+async def test_token_without_the_required_scope_gets_403(oauth, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH_REQUIRED_SCOPES", "mcp.access")
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    response = await _request("POST", "/mcp", "mcp.example.com", token=_token(scope="mcp.read"))
+
+    assert response.status_code == 403
+
+
+async def test_token_for_another_audience_gets_401(oauth) -> None:
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    token = _token(aud="https://other.example.com/mcp")
+
+    assert (await _request("POST", "/mcp", "mcp.example.com", token=token)).status_code == 401
+
+
+async def test_audience_setting_accepts_an_api_identifier(oauth, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH_AUDIENCE", f"api://simple-sn,{RESOURCE}")
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    token = _token(aud="api://simple-sn")
+
+    assert (await _request("POST", "/mcp", "mcp.example.com", token=token)).status_code == 200
+
+
+async def test_explicit_jwks_url_skips_discovery(oauth, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH_JWKS_URL", "https://idp.example.com/keys")
+    server.main(["--transport", "http", "--host", "0.0.0.0"])
+
+    await _request("POST", "/mcp", "mcp.example.com", token=_token())
+
+    assert oauth.paths == ["/keys"]
+
+
+def test_plain_http_issuer_is_refused(oauth, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH_ISSUER", "http://idp.example.com")
+
+    with pytest.raises(SystemExit, match="https"):
+        server.main(["--transport", "http"])
+
+
+def test_plain_http_issuer_on_loopback_is_allowed_for_testing(oauth, monkeypatch) -> None:
+    monkeypatch.setenv("SN_HTTP_AUTH_ISSUER", "http://127.0.0.1:9000")
+
+    server.main(["--transport", "http"])
+
+    assert oauth is not None and server.mcp.settings.auth is not None

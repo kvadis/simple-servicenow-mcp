@@ -116,8 +116,24 @@ class Settings(BaseSettings):
         default="",
         description="Public URL of this server's MCP endpoint, e.g. https://mcp.example.com/mcp",
     )
+    http_auth_audience: str = Field(
+        default="",
+        description="Comma-separated `aud` values to accept; defaults to the resource URL. Use "
+        "an API identifier (e.g. api://simple-sn), never a client ID.",
+    )
+    http_auth_jwks_url: str = Field(
+        default="", description="Signing-key URL, for identity providers without discovery"
+    )
+    http_auth_required_scopes: str = Field(
+        default="", description="Comma-separated scopes every access token must carry"
+    )
     http_allowed_hosts: str = Field(
         default="",
         description="Comma-separated Host names the HTTP transport accepts besides loopback, "
         "e.g. mcp.example.com. Any other Host header is refused (DNS-rebinding protection).",
     )
+
+
+def split_csv(raw: str) -> list[str]:
+    """`"a, b,,c"` → `["a", "b", "c"]`: comma-list settings with blanks dropped."""
+    return [part.strip() for part in raw.split(",") if part.strip()]
