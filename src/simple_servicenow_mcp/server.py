@@ -9,12 +9,15 @@ import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 
 from .client import ServiceNowClient
-from .config import Settings
+from .config import Settings, split_csv
+from .http_auth import configure_http_auth
 from .instances import InstanceRegistry, load_instances
 from .logging_setup import setup_logging
 from .packages import selected_modules_from_env
@@ -170,6 +173,34 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+_LOOPBACK_NAMES = ("127.0.0.1", "localhost", "::1")
+_LOOPBACK_HOSTS = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+_LOOPBACK_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+
+
+def _transport_security(settings: Settings) -> TransportSecuritySettings | None:
+    """Host/Origin allow-list for the HTTP transports, or None to keep the SDK's.
+
+    `mcp` is constructed with the SDK's default host, so it only ever allows
+    loopback Host headers; changing `mcp.settings.host` later does not widen that.
+    """
+    hosts = split_csv(settings.http_allowed_hosts)
+    if settings.http_auth == "oauth" and settings.http_auth_resource_url:
+        # Clients reach an OAuth-protected server by its resource URL.
+        resource_host = urlsplit(settings.http_auth_resource_url).hostname
+        if resource_host:
+            hosts.append(resource_host)
+    if not hosts:
+        return None
+    patterns = [p for host in hosts for p in (host, f"{host}:*")]
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=_LOOPBACK_HOSTS + patterns,
+        allowed_origins=_LOOPBACK_ORIGINS
+        + [f"{scheme}://{p}" for p in patterns for scheme in ("https", "http")],
+    )
+
+
 def _read_only_from_env() -> bool:
     raw = os.environ.get("SN_READ_ONLY", "true").strip().lower()
     return raw not in ("false", "0", "no", "off", "f", "n")
@@ -199,14 +230,44 @@ def main(argv: list[str] | None = None) -> None:
     )
     if args.transport == "stdio":
         mcp.run(transport="stdio")
-    elif args.transport == "http":
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-        mcp.run(transport="streamable-http")
-    else:  # sse
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-        mcp.run(transport="sse")
+        return
+
+    settings = Settings()
+    setup_logging(level=settings.log_level, fmt=settings.log_format)
+    if settings.http_auth == "oauth":
+        if args.transport != "http":
+            # The SDK client checks that the protected-resource URL matches the URL it
+            # connected to, and the SSE endpoint is not the MCP endpoint.
+            raise SystemExit("SN_HTTP_AUTH=oauth works with --transport http only, not sse.")
+        missing = [
+            name
+            for name, value in (
+                ("SN_HTTP_AUTH_ISSUER", settings.http_auth_issuer),
+                ("SN_HTTP_AUTH_RESOURCE_URL", settings.http_auth_resource_url),
+            )
+            if not value
+        ]
+        if missing:
+            raise SystemExit(f"SN_HTTP_AUTH=oauth needs {' and '.join(missing)}.")
+        issuer = urlsplit(settings.http_auth_issuer)
+        if issuer.scheme != "https" and issuer.hostname not in _LOOPBACK_NAMES:
+            raise SystemExit("SN_HTTP_AUTH_ISSUER must be an https:// URL.")
+        configure_http_auth(mcp, settings)
+    elif args.host not in _LOOPBACK_NAMES:
+        logging.getLogger(__name__).warning(
+            "server.http_unauthenticated: anyone who can reach %s:%s can use the server; "
+            "set SN_HTTP_AUTH=oauth to require sign-in",
+            args.host,
+            args.port,
+            extra={"host": args.host, "port": args.port},
+        )
+
+    security = _transport_security(settings)
+    if security is not None:
+        mcp.settings.transport_security = security
+    mcp.settings.host = args.host
+    mcp.settings.port = args.port
+    mcp.run(transport="streamable-http" if args.transport == "http" else "sse")
 
 
 if __name__ == "__main__":

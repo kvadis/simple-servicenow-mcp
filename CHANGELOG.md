@@ -6,7 +6,19 @@ All notable changes to this project will be documented here. The format is based
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **Sign-in for the HTTP transport** (`SN_HTTP_AUTH=oauth`). The server becomes an OAuth resource server: it checks JWT access tokens from your identity provider (Entra ID, Okta, Auth0, Keycloak) and publishes Protected Resource Metadata (RFC 9728), so MCP clients can sign the user in. Tokens are never forwarded to ServiceNow, and tool calls keep using the server's configured credentials. The verifier:
+  - accepts only asymmetric signatures, with the algorithm bound to the identity provider's key;
+  - requires `exp`, `iss`, `aud` and `sub`, and rejects ID tokens;
+  - caps token size;
+  - caches signing keys, rate-limits refetches and survives provider outages.
+
+  `--transport sse` refuses OAuth, because MCP clients can't complete discovery over it. Settings: `SN_HTTP_AUTH_ISSUER`, `_RESOURCE_URL`, `_AUDIENCE`, `_JWKS_URL`, `_REQUIRED_SCOPES`.
+- **Request logs name the caller** (`user`, `username`) when a request carries an access token, and never log the token itself.
+- **A startup warning** (`server.http_unauthenticated`) when the HTTP transport runs without sign-in on a non-loopback host.
+
+### Fixed
+- **The HTTP transport refused every request that reached it by hostname** with `421 Invalid Host header`, because its DNS-rebinding allow-list only ever held loopback. That affected direct access and proxies that keep the `Host` header. The new `SN_HTTP_ALLOWED_HOSTS` setting lists the names to accept, and with OAuth the resource URL's host is added automatically.
 
 ## [0.2.2] — 2026-09-24
 

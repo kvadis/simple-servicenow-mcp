@@ -102,3 +102,38 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO", description="Log level (DEBUG, INFO, WARNING, ERROR)")
     log_format: Literal["text", "json"] = Field(default="text", description="Log format")
+
+    # HTTP transport
+    http_auth: Literal["none", "oauth"] = Field(
+        default="none",
+        description="'oauth' makes --transport http require an access token from the identity "
+        "provider at SN_HTTP_AUTH_ISSUER. Ignored on stdio.",
+    )
+    http_auth_issuer: str = Field(
+        default="", description="Issuer URL of the identity provider that signs access tokens"
+    )
+    http_auth_resource_url: str = Field(
+        default="",
+        description="Public URL of this server's MCP endpoint, e.g. https://mcp.example.com/mcp",
+    )
+    http_auth_audience: str = Field(
+        default="",
+        description="Comma-separated `aud` values to accept; defaults to the resource URL. Use "
+        "an API identifier (e.g. api://simple-sn), never a client ID.",
+    )
+    http_auth_jwks_url: str = Field(
+        default="", description="Signing-key URL, for identity providers without discovery"
+    )
+    http_auth_required_scopes: str = Field(
+        default="", description="Comma-separated scopes every access token must carry"
+    )
+    http_allowed_hosts: str = Field(
+        default="",
+        description="Comma-separated Host names the HTTP transport accepts besides loopback, "
+        "e.g. mcp.example.com. Any other Host header is refused (DNS-rebinding protection).",
+    )
+
+
+def split_csv(raw: str) -> list[str]:
+    """`"a, b,,c"` → `["a", "b", "c"]`: comma-list settings with blanks dropped."""
+    return [part.strip() for part in raw.split(",") if part.strip()]

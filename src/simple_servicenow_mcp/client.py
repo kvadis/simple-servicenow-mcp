@@ -10,6 +10,7 @@ import uuid
 from typing import Any
 
 import httpx
+from mcp.server.auth.middleware.auth_context import get_access_token
 
 from .config import Settings
 from .token_store import StoredToken, TokenStore, token_key
@@ -388,6 +389,7 @@ class ServiceNowClient:
         Emits structured logs with a per-call request_id.
         """
         request_id = uuid.uuid4().hex[:8]
+        caller = _caller()
         path = self._path(url)
         base_attempts = self._settings.max_retries + 1
         # One extra iteration is reserved for the retry that carries a *refreshed*
@@ -420,6 +422,7 @@ class ServiceNowClient:
                         "api.request.network_retry",
                         extra={
                             "request_id": request_id,
+                            **caller,
                             "method": method,
                             "path": path,
                             "duration_ms": duration_ms,
@@ -434,6 +437,7 @@ class ServiceNowClient:
                     "api.request.network_failed",
                     extra={
                         "request_id": request_id,
+                        **caller,
                         "method": method,
                         "path": path,
                         "duration_ms": duration_ms,
@@ -465,6 +469,7 @@ class ServiceNowClient:
                         "api.request.auth_retry",
                         extra={
                             "request_id": request_id,
+                            **caller,
                             "method": method,
                             "path": path,
                             "duration_ms": duration_ms,
@@ -479,6 +484,7 @@ class ServiceNowClient:
                         "api.request.retry",
                         extra={
                             "request_id": request_id,
+                            **caller,
                             "method": method,
                             "path": path,
                             "status": resp.status_code,
@@ -493,6 +499,7 @@ class ServiceNowClient:
                     "api.request.error",
                     extra={
                         "request_id": request_id,
+                        **caller,
                         "method": method,
                         "path": path,
                         "status": resp.status_code,
@@ -506,6 +513,7 @@ class ServiceNowClient:
                 "api.request.ok",
                 extra={
                     "request_id": request_id,
+                    **caller,
                     "method": method,
                     "path": path,
                     "status": resp.status_code,
@@ -745,3 +753,19 @@ class ServiceNowClient:
                 parent = parent.get("value") or parent.get("display_value")
             current = parent or None
         return chain
+
+
+def _caller() -> dict[str, str]:
+    """Who made this request, for the request log; empty when there is no access token.
+
+    With HTTP OAuth every caller shares the server's ServiceNow identity, so this
+    log is the only record of who called. The token itself is never logged.
+    """
+    access = get_access_token()
+    if access is None or not access.subject:
+        return {}
+    caller = {"user": access.subject}
+    username = (access.claims or {}).get("preferred_username")
+    if isinstance(username, str):
+        caller["username"] = username
+    return caller
