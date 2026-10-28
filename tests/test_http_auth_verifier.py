@@ -152,6 +152,7 @@ async def test_scopes_are_read_from_scope_and_scp(
     ("claims", "client_id"),
     [
         pytest.param({"client_id": "okta-app"}, "okta-app", id="client_id-claim"),
+        pytest.param({"cid": "okta-cid-app"}, "okta-cid-app", id="okta-cid"),
         pytest.param({"appid": "entra-v1-app"}, "entra-v1-app", id="entra-v1-appid"),
         pytest.param({}, "unknown", id="none"),
     ],

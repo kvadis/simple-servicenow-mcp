@@ -98,7 +98,11 @@ class JwtTokenVerifier:
             return AccessToken(
                 token=token,
                 client_id=str(
-                    claims.get("azp") or claims.get("client_id") or claims.get("appid") or "unknown"
+                    claims.get("azp")
+                    or claims.get("client_id")
+                    or claims.get("cid")  # Okta
+                    or claims.get("appid")  # Entra v1
+                    or "unknown"
                 ),
                 scopes=_scopes(claims),
                 # The SDK middleware compares expires_at with no skew of its own.
