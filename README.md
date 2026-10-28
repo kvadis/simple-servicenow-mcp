@@ -104,6 +104,9 @@ info, health, table schema and app scope. Details are in the
   including inherited fields, before anything is sent.
 - **Every tool is annotated** as read, write or destructive, so clients can ask
   before running the risky ones.
+- **The HTTP transport can require sign-in** through your identity provider
+  (Entra ID, Okta, Auth0, Keycloak). Tokens are checked, never forwarded to
+  ServiceNow, and the log records who made each call.
 
 ## Documentation
 

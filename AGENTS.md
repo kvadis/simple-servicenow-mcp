@@ -64,6 +64,8 @@ python -m build                                        # Build wheel + sdist int
 | `SN_INSTANCES_FILE` | Path to `instances.json` — enables multi-instance mode |
 | `SN_READ_ONLY` | Defaults to `true` (mutations refused). `false` allows writes (CLI: `--read-write`; `--read-only` forces it back on) |
 | `SN_TOOL_PACKAGES` | Comma-separated subset of tool modules to load. Unset → curated default (`core,itsm,scripts,catalog,audit`, 27 tools). `all` → every module (43 tools). |
+| `SN_HTTP_AUTH` (+ `_ISSUER`, `_RESOURCE_URL`, `_AUDIENCE`, `_JWKS_URL`, `_REQUIRED_SCOPES`) | `oauth` → `--transport http` requires IdP access tokens (`http_auth.py`); stdio ignores it; `sse` refuses it |
+| `SN_HTTP_ALLOWED_HOSTS` | Hostnames the HTTP transport accepts besides loopback (DNS-rebinding allow-list) |
 
 See `.env.example` for the canonical list. **Common gotcha:** `SN_API_TIMEOUT` is in seconds — `30000` would be 8.3 hours.
 
@@ -79,6 +81,8 @@ src/simple_servicenow_mcp/
                     # Auth (Basic + OAuth client credentials), retry loop with Retry-After,
                     # Table + Stats + Attachment + sys_dictionary discovery APIs
   instances.py      # Multi-instance registry (SN_INSTANCES_FILE → named clients)
+  http_auth.py      # HTTP transport sign-in: JwtTokenVerifier (IdP JWT access tokens),
+                    #   configure_http_auth() wires it into FastMCP before the app is built
                     # Per-instance overrides on top of fallback Settings
   packages.py       # SN_TOOL_PACKAGES parsing (gates which tool modules import)
   logging_setup.py  # stdlib logging + JSON formatter (no structlog dependency)

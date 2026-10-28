@@ -48,6 +48,6 @@ Out of scope:
 - Use a **dedicated ServiceNow user** with the minimum role set your workflows need (don't use `admin`).
 - Prefer **OAuth** over Basic auth so no password sits in env vars: authorization code + PKCE (`simple-servicenow-mcp login`) ties access to a real user; client credentials suits a service identity.
 - The server is **read-only by default**. Only pass `--read-write` / `SN_READ_ONLY=false` for the specific client that needs to write, never for one shared with an agent you don't fully trust.
-- For HTTP transport, put it **behind an authenticating proxy** (Cloudflare Access, oauth2-proxy, etc.). The MCP doesn't yet do incoming OAuth 2.1 PKCE.
+- For the HTTP transport, **require sign-in** with `SN_HTTP_AUTH=oauth` (tokens from your identity provider; see `docs/authentication.md`), or put it behind an authenticating proxy (Cloudflare Access, oauth2-proxy, etc.). Signed-in users share the server's ServiceNow identity, so give that account read-only roles. The SSE transport has no sign-in.
 - Store `instances.json` outside the repo, with restricted file permissions (`chmod 600`).
 - Pin the version in production (`pip install simple-servicenow-mcp==X.Y.Z`) rather than tracking latest.

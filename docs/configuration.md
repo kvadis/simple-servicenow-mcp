@@ -105,6 +105,8 @@ directory the server starts from. The main ones:
 | `SN_INSTANCES_FILE` | none | Enables [multi-instance](#multi-instance) mode |
 | `SN_API_TIMEOUT` | `30` | Request timeout, in seconds |
 | `SN_LOG_LEVEL` / `SN_LOG_FORMAT` | `INFO` / `text` | Logging goes to stderr; `json` for structured logs |
+| `SN_HTTP_AUTH` | `none` | `oauth` requires sign-in on `--transport http` ([Authentication](authentication.md#protecting-the-http-transport)) |
+| `SN_HTTP_ALLOWED_HOSTS` | none | Hostnames the HTTP transport accepts besides loopback ([Transports](#transports)) |
 
 [`.env.example`](../.env.example) lists every variable, including paging,
 retries and token storage.
@@ -185,5 +187,18 @@ including a browser-login entry.
 | Streamable HTTP | Remote or shared use, behind a reverse proxy | `simple-servicenow-mcp --transport http --host 0.0.0.0 --port 8000` |
 | SSE | Older streaming clients | `simple-servicenow-mcp --transport sse` |
 
-The HTTP transports have no authentication of their own yet. Put them behind an
-authenticating proxy and keep the server read-only.
+**Sign-in on the HTTP transport.** `SN_HTTP_AUTH=oauth` makes `--transport http`
+require an access token from your identity provider. Everyone then shares the
+server's own ServiceNow login, and the request log records who made each call.
+Setup is in [Authentication](authentication.md#protecting-the-http-transport).
+SSE has no sign-in; use it only on a trusted network.
+
+**Hostnames.** The server accepts only loopback `Host` headers by default, which
+protects against DNS rebinding. When clients reach it by name (directly, or
+through a proxy that keeps the `Host` header, like Caddy or Traefik), list the
+names in `SN_HTTP_ALLOWED_HOSTS`, e.g. `mcp.example.com`; otherwise every request
+gets `421 Invalid Host header`. With `SN_HTTP_AUTH=oauth`, the host of
+`SN_HTTP_AUTH_RESOURCE_URL` is allowed automatically.
+
+Without sign-in on a non-loopback `--host`, the server logs
+`server.http_unauthenticated` at startup.
